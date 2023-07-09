@@ -1,0 +1,25 @@
+{
+    "name": "aiptu/playerwarn",
+    "description": "A PocketMine-MP plugin that allows server administrators to issue warnings to players and keep track of their warning history.",
+    "license": "MIT",
+    "type": "project",
+    "require": {
+        "pocketmine/pocketmine-mp": "^5.0"
+    },
+    "require-dev": {
+        "phpstan/extension-installer": "^1.3",
+        "phpstan/phpstan": "^1.10",
+        "phpstan/phpstan-strict-rules": "^1.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "AIPTU/PlayerWarn\\": "/src"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    }
+}

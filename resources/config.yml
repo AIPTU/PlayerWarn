@@ -1,0 +1,10 @@
+# PlayerWarn Configuration
+
+# The `warning_limit` option specifies the maximum number of warnings a player can have before being banned.
+# Set a positive integer value for this option. The default value is 3.
+warning_limit: 3
+
+# The `punishment_type` option specifies the type of punishment to apply when a player reaches the warning limit.
+# Valid options are "kick", "ban", "ban-ip", and "none".
+# The default value is "none", which means no punishment will be applied.
+punishment_type: none

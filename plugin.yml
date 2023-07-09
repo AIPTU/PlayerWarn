@@ -1,0 +1,16 @@
+name: PlayerWarn
+main: aiptu\playerwarn\PlayerWarn
+src-namespace-prefix: aiptu\playerwarn
+version: 1.0.0-dev
+api: [5.0.0]
+author: AIPTU
+permissions:
+  playerwarn.command.warn:
+    description: Permission to use the /warn command
+    default: op
+  playerwarn.command.warns:
+    description: Permission to use the /warns command
+    default: true
+  playerwarn.command.clearwarns:
+    description: Permission to use the /clearwarns command
+    default: op

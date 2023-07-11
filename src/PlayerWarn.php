@@ -18,6 +18,7 @@ use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
 use function in_array;
@@ -25,6 +26,7 @@ use function is_int;
 
 class PlayerWarn extends PluginBase implements Listener {
 	private WarnList $warnList;
+	private array $pendingPunishments = [];
 
 	private int $warningLimit;
 	private string $punishmentType;
@@ -48,6 +50,33 @@ class PlayerWarn extends PluginBase implements Listener {
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+	}
+
+	/**
+	 * @priority MONITOR
+	 */
+	public function onPlayerJoin(PlayerJoinEvent $event) : void {
+		$player = $event->getPlayer();
+		$playerName = $player->getName();
+
+		$warns = $this->getWarns();
+
+		if ($warns->hasWarnings($playerName)) {
+			$warningCount = $warns->getWarningCount($playerName);
+			$player->sendMessage(TextFormat::RED . "You have {$warningCount} active warning(s). Please take note of your behavior.");
+		}
+
+		if ($this->hasPendingPunishments($playerName)) {
+			$pendingPunishments = $this->getPendingPunishments($playerName);
+			foreach ($pendingPunishments as $pendingPunishment) {
+				$punishmentType = $pendingPunishment['punishmentType'];
+				$reason = $pendingPunishment['reason'];
+				$issuerName = $pendingPunishment['issuerName'];
+				$this->applyPunishment($player, $punishmentType, $issuerName, $reason);
+			}
+
+			$this->removePendingPunishments($playerName);
+		}
 	}
 
 	public function getWarns() : WarnList {
@@ -86,17 +115,51 @@ class PlayerWarn extends PluginBase implements Listener {
 		return $this->punishmentType;
 	}
 
-	/**
-	 * @priority MONITOR
-	 */
-	public function onPlayerJoin(PlayerJoinEvent $event) : void {
-		$player = $event->getPlayer();
+	public function applyPunishment(Player $player, string $punishmentType, string $issuerName, string $reason) : void {
+		$server = $player->getServer();
 		$playerName = $player->getName();
 
-		$warns = $this->getWarns();
-		if ($warns->hasWarnings($playerName)) {
-			$warningCount = $warns->getWarningCount($playerName);
-			$player->sendMessage(TextFormat::RED . "You have {$warningCount} active warning(s). Please take note of your behavior.");
+		switch ($punishmentType) {
+			case 'kick':
+				$player->kick(TextFormat::RED . 'You have reached the warning limit.');
+				break;
+			case 'ban':
+				$banList = $server->getNameBans();
+				if (!$banList->isBanned($playerName)) {
+					$banList->addBan($playerName, $reason, null, $issuerName);
+				}
+				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
+				break;
+			case 'ban-ip':
+				$ip = $player->getNetworkSession()->getIp();
+				$ipBanList = $server->getIPBans();
+				if (!$ipBanList->isBanned($ip)) {
+					$ipBanList->addBan($ip, $reason, null, $issuerName);
+				}
+				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
+				$server->getNetwork()->blockAddress($ip, -1);
+				break;
 		}
+	}
+
+	public function addPendingPunishment(string $playerName, string $punishmentType, string $issuerName, string $reason) : void {
+		$pendingPunishment = [
+			'punishmentType' => $punishmentType,
+			'issuerName' => $issuerName,
+			'reason' => $reason,
+		];
+		$this->pendingPunishments[$playerName][] = $pendingPunishment;
+	}
+
+	public function hasPendingPunishments(string $playerName) : bool {
+		return isset($this->pendingPunishments[$playerName]);
+	}
+
+	public function getPendingPunishments(string $playerName) : array {
+		return $this->pendingPunishments[$playerName] ?? [];
+	}
+
+	public function removePendingPunishments(string $playerName) : void {
+		unset($this->pendingPunishments[$playerName]);
 	}
 }

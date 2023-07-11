@@ -54,53 +54,34 @@ class WarnCommand extends Command implements PluginOwned {
 		$punishmentType = $this->plugin->getPunishmentType();
 
 		$warns = $this->plugin->getWarns();
-		$warningCount = $warns->getWarningCount($playerName);
-
-		if ($warningCount > $warningLimit && $punishmentType !== 'none') {
-			$sender->sendMessage(TextFormat::RED . "Player {$playerName} has reached the warning limit and will be punished.");
-
-			$player = $this->plugin->getServer()->getPlayerExact($playerName);
-			if ($player instanceof Player) {
-				$this->applyPunishment($player, $punishmentType, $sender, $reason);
-			}
-
-			return true;
-		}
 
 		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName());
 		$warns->addWarn($warnEntry);
-		$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} has been warned for: {$reason}");
 
 		$player = $this->plugin->getServer()->getPlayerExact($playerName);
 		if ($player instanceof Player) {
 			$player->sendMessage(TextFormat::YELLOW . "You have been warned by {$sender->getName()} for: {$reason}");
 		}
 
-		if ($warningCount > 0) {
-			$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} now has a total of {$warningCount} warnings.");
+		$newWarningCount = $warns->getWarningCount($playerName);
+		$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} has been warned for: {$reason}");
+
+		if ($newWarningCount > 0) {
+			$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} now has a total of {$newWarningCount} warnings.");
+		}
+
+		if ($newWarningCount >= $warningLimit && $punishmentType !== 'none') {
+			$sender->sendMessage(TextFormat::RED . "Player {$playerName} has reached the warning limit and will be punished.");
+
+			if ($player instanceof Player) {
+				$this->plugin->applyPunishment($player, $punishmentType, $sender->getName(), $reason);
+			} else {
+				$this->plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
+				$sender->sendMessage(TextFormat::YELLOW . "Player {$playerName} is currently offline. The punishment will be applied when they rejoin.");
+			}
 		}
 
 		return true;
-	}
-
-	private function applyPunishment(Player $player, string $punishmentType, CommandSender $sender, string $reason) : void {
-		$server = $player->getServer();
-
-		switch ($punishmentType) {
-			case 'kick':
-				$player->kick(TextFormat::RED . 'You have reached the warning limit.');
-				break;
-			case 'ban':
-				$server->getNameBans()->addBan($player->getName(), $reason, null, $sender->getName());
-				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
-				break;
-			case 'ban-ip':
-				$ip = $player->getNetworkSession()->getIp();
-				$server->getIPBans()->addBan($ip, $reason, null, $sender->getName());
-				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
-				$server->getNetwork()->blockAddress($ip, -1);
-				break;
-		}
 	}
 
 	public function getOwningPlugin() : PlayerWarn {

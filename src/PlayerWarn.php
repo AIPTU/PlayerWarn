@@ -107,6 +107,8 @@ class PlayerWarn extends PluginBase implements Listener {
 		if ($warns->hasWarnings($playerName)) {
 			$warningCount = $warns->getWarningCount($playerName);
 			$player->sendMessage(TextFormat::RED . "You have {$warningCount} active warning(s). Please take note of your behavior.");
+		} else {
+			$player->sendMessage(TextFormat::GREEN . 'You have no active warnings. Keep up the good behavior!');
 		}
 
 		if ($this->hasPendingPunishments($playerName)) {

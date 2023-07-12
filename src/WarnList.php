@@ -46,6 +46,27 @@ class WarnList {
 		}
 	}
 
+	public function removeSpecificWarn(WarnEntry $warnEntry) : void {
+		$playerName = strtolower($warnEntry->getPlayerName());
+
+		if (isset($this->warns[$playerName])) {
+			$playerWarns = &$this->warns[$playerName];
+
+			foreach ($playerWarns as $index => $existingWarnEntry) {
+				if ($existingWarnEntry === $warnEntry) {
+					unset($playerWarns[$index]);
+					break;
+				}
+			}
+
+			if (count($playerWarns) === 0) {
+				unset($this->warns[$playerName]);
+			}
+
+			$this->saveWarns();
+		}
+	}
+
 	public function getWarns(string $playerName) : array {
 		$playerName = strtolower($playerName);
 		return $this->warns[$playerName] ?? [];
@@ -57,8 +78,6 @@ class WarnList {
 	}
 
 	public function hasWarnings(string $playerName) : bool {
-		$this->removeExpiredWarns();
-
 		$playerName = strtolower($playerName);
 		return $this->getWarningCount($playerName) > 0;
 	}

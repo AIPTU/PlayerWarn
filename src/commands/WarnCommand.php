@@ -20,7 +20,8 @@ use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\utils\TextFormat;
-use function array_shift;
+use function array_pop;
+use function array_slice;
 use function count;
 use function implode;
 
@@ -38,46 +39,59 @@ class WarnCommand extends Command implements PluginOwned {
 		}
 
 		if (count($args) < 2) {
-			$sender->sendMessage(TextFormat::RED . 'Usage: /warn <player> [reason]');
+			$sender->sendMessage(TextFormat::RED . 'Usage: /warn <player> <reason> [duration]');
 			return false;
 		}
 
-		$playerName = array_shift($args);
+		$playerName = $args[0];
 		if (!Player::isValidUserName($playerName)) {
 			$sender->sendMessage(TextFormat::RED . 'Invalid player username. Please provide a valid username.');
 			return false;
 		}
 
-		$reason = implode(' ', $args);
+		$reason = implode(' ', array_slice($args, 1));
+		$durationString = isset($args[2]) ? array_pop($args) : null;
+
+		$expiration = null;
+		if ($durationString !== null) {
+			try {
+				$expiration = PlayerWarn::parseDurationString($durationString);
+			} catch (\InvalidArgumentException $e) {
+				$sender->sendMessage(TextFormat::RED . $e->getMessage());
+				return false;
+			}
+		}
 
 		$warningLimit = $this->plugin->getWarningLimit();
 		$punishmentType = $this->plugin->getPunishmentType();
 
 		$warns = $this->plugin->getWarns();
 
-		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName());
+		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName(), $expiration);
 		$warns->addWarn($warnEntry);
 
 		$player = $this->plugin->getServer()->getPlayerExact($playerName);
 		if ($player instanceof Player) {
-			$player->sendMessage(TextFormat::YELLOW . "You have been warned by {$sender->getName()} for: {$reason}");
+			$player->sendMessage(TextFormat::YELLOW . 'You have been warned by ' . TextFormat::AQUA . $sender->getName() . TextFormat::YELLOW . ' for: ' . TextFormat::AQUA . $reason);
+			$player->sendMessage(TextFormat::YELLOW . 'The warning will ' . ($expiration === null ? TextFormat::AQUA . 'never expire' : 'expire on ' . TextFormat::AQUA . $expiration->format(WarnEntry::DATE_TIME_FORMAT)));
 		}
 
 		$newWarningCount = $warns->getWarningCount($playerName);
-		$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} has been warned for: {$reason}");
+		$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' has been warned for: ' . TextFormat::YELLOW . $reason);
+		$sender->sendMessage(TextFormat::AQUA . 'The warning will ' . ($expiration === null ? TextFormat::YELLOW . 'never expire' : 'expire on ' . TextFormat::YELLOW . $expiration->format(WarnEntry::DATE_TIME_FORMAT)));
 
 		if ($newWarningCount > 0) {
-			$sender->sendMessage(TextFormat::AQUA . "Player {$playerName} now has a total of {$newWarningCount} warnings.");
+			$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $newWarningCount . TextFormat::AQUA . ' warnings.');
 		}
 
 		if ($newWarningCount >= $warningLimit && $punishmentType !== 'none') {
-			$sender->sendMessage(TextFormat::RED . "Player {$playerName} has reached the warning limit and will be punished.");
+			$sender->sendMessage(TextFormat::RED . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::RED . ' has reached the warning limit and will be punished.');
 
 			if ($player instanceof Player) {
 				$this->plugin->applyPunishment($player, $punishmentType, $sender->getName(), $reason);
 			} else {
 				$this->plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
-				$sender->sendMessage(TextFormat::YELLOW . "Player {$playerName} is currently offline. The punishment will be applied when they rejoin.");
+				$sender->sendMessage(TextFormat::YELLOW . 'Player ' . TextFormat::AQUA . $playerName . TextFormat::YELLOW . ' is currently offline. The punishment will be applied when they rejoin.');
 			}
 		}
 

@@ -20,16 +20,19 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\TextFormat;
+use function array_sum;
 use function in_array;
 use function is_int;
+use function preg_match;
 
 class PlayerWarn extends PluginBase implements Listener {
 	private WarnList $warnList;
-	private array $pendingPunishments = [];
-
 	private int $warningLimit;
 	private string $punishmentType;
+	private array $pendingPunishments = [];
+	private array $lastWarningCounts = [];
 
 	public function onEnable() : void {
 		$this->warnList = new WarnList($this->getDataFolder() . 'warnings.json');
@@ -50,6 +53,36 @@ class PlayerWarn extends PluginBase implements Listener {
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+
+		$this->getScheduler()->scheduleRepeatingTask(
+			new ClosureTask(function () : void {
+				$server = $this->getServer();
+				$warns = $this->getWarns();
+
+				foreach ($server->getOnlinePlayers() as $player) {
+					$playerName = $player->getName();
+
+					if (!$player->isOnline()) {
+						continue;
+					}
+
+					$playerWarns = $warns->getWarns($playerName);
+					$expiredCount = 0;
+
+					foreach ($playerWarns as $index => $warnEntry) {
+						if ($warnEntry->hasExpired()) {
+							$warns->removeSpecificWarn($warnEntry);
+							++$expiredCount;
+						}
+					}
+
+					if ($expiredCount > 0) {
+						$player->sendMessage(TextFormat::YELLOW . "You have {$expiredCount} warning(s) that have expired.");
+					}
+				}
+			}),
+			20
+		);
 	}
 
 	/**
@@ -58,6 +91,16 @@ class PlayerWarn extends PluginBase implements Listener {
 	public function onPlayerJoin(PlayerJoinEvent $event) : void {
 		$player = $event->getPlayer();
 		$playerName = $player->getName();
+
+		$lastWarningCount = $this->getLastWarningCount($playerName);
+		$currentWarningCount = $this->getWarns()->getWarningCount($playerName);
+
+		if ($currentWarningCount > $lastWarningCount) {
+			$newWarningCount = $currentWarningCount - $lastWarningCount;
+			$player->sendMessage(TextFormat::YELLOW . "You have received {$newWarningCount} new warning(s). Please take note of your behavior.");
+		}
+
+		$this->setLastWarningCount($playerName, $currentWarningCount);
 
 		$warns = $this->getWarns();
 
@@ -77,10 +120,6 @@ class PlayerWarn extends PluginBase implements Listener {
 
 			$this->removePendingPunishments($playerName);
 		}
-	}
-
-	public function getWarns() : WarnList {
-		return $this->warnList;
 	}
 
 	/**
@@ -105,6 +144,36 @@ class PlayerWarn extends PluginBase implements Listener {
 			throw new \InvalidArgumentException('Invalid punishment type in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
 		}
 		$this->punishmentType = $punishmentType;
+	}
+
+	public static function parseDurationString(string $durationString) : ?\DateTime {
+		$pattern = '/^(\d+d)?(\d+h)?(\d+m)?(\d+s)?$/';
+
+		if (preg_match($pattern, $durationString, $matches) !== 1) {
+			throw new \InvalidArgumentException('Invalid duration string format. The format should be a combination of digits followed by d (days), h (hours), m (minutes), and s (seconds). Example: 1d2h30m');
+		}
+
+		$duration = [
+			'days' => (int) ($matches[1] ?? 0),
+			'hours' => (int) ($matches[2] ?? 0),
+			'minutes' => (int) ($matches[3] ?? 0),
+			'seconds' => (int) ($matches[4] ?? 0),
+		];
+
+		$hasDuration = array_sum($duration) > 0;
+
+		if (!$hasDuration) {
+			return null;
+		}
+
+		$now = new \DateTime();
+		$interval = new \DateInterval('P' . $duration['days'] . 'DT' . $duration['hours'] . 'H' . $duration['minutes'] . 'M' . $duration['seconds'] . 'S');
+
+		return $now->add($interval);
+	}
+
+	public function getWarns() : WarnList {
+		return $this->warnList;
 	}
 
 	public function getWarningLimit() : int {
@@ -161,5 +230,13 @@ class PlayerWarn extends PluginBase implements Listener {
 
 	public function removePendingPunishments(string $playerName) : void {
 		unset($this->pendingPunishments[$playerName]);
+	}
+
+	private function getLastWarningCount(string $playerName) : int {
+		return $this->lastWarningCounts[$playerName] ?? 0;
+	}
+
+	private function setLastWarningCount(string $playerName, int $warningCount) : void {
+		$this->lastWarningCounts[$playerName] = $warningCount;
 	}
 }

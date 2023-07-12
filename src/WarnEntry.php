@@ -40,9 +40,24 @@ class WarnEntry {
 			$reason = $data['reason'];
 			$source = $data['source'];
 
-			$expiration = isset($data['expiration']) ? (strtolower($data['expiration']) !== 'never' ? new \DateTime($data['expiration']) : null) : null;
+			$expiration = null;
+			if (isset($data['expiration']) && strtolower($data['expiration']) !== 'never') {
+				$expiration = self::parseExpiration($data['expiration']);
+				if ($expiration === null) {
+					throw new \InvalidArgumentException('Invalid expiration date format or value: ' . $data['expiration']);
+				}
+			}
 
 			return new self($playerName, $reason, $source, $expiration);
+		}
+
+		return null;
+	}
+
+	private static function parseExpiration(string $expirationString) : ?\DateTime {
+		$dateTime = \DateTime::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
+		if ($dateTime instanceof \DateTime) {
+			return $dateTime;
 		}
 
 		return null;

@@ -50,7 +50,10 @@ class WarnsCommand extends Command implements PluginOwned {
 			$timestamp = $warnEntry->getTimestamp()->format(WarnEntry::DATE_TIME_FORMAT);
 			$reason = $warnEntry->getReason();
 			$source = $warnEntry->getSource();
-			$message .= TextFormat::GRAY . "\n- Timestamp: {$timestamp} | Reason: {$reason} | Source: {$source}";
+			$expiration = $warnEntry->getExpiration();
+			$expirationString = $expiration !== null ? $expiration->format(WarnEntry::DATE_TIME_FORMAT) : 'Never';
+
+			$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . 'Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";
 		}
 
 		$sender->sendMessage($message);

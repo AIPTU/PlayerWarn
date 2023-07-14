@@ -13,8 +13,12 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn;
 
-use function is_string;
+use function array_diff;
+use function array_keys;
+use function count;
+use function implode;
 use function strtolower;
+use function trim;
 
 class WarnEntry {
 	public const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
@@ -31,36 +35,33 @@ class WarnEntry {
 		$this->timestamp = new \DateTime();
 	}
 
-	public static function fromArray(array $data) : ?self {
-		if (
-			isset($data['player'], $data['reason'], $data['source'])
-			&& is_string($data['player']) && is_string($data['reason']) && is_string($data['source'])
-		) {
-			$playerName = $data['player'];
-			$reason = $data['reason'];
-			$source = $data['source'];
+	public static function fromArray(array $data) : self {
+		$requiredFields = ['player', 'reason', 'source'];
 
-			$expiration = null;
-			if (isset($data['expiration']) && strtolower($data['expiration']) !== 'never') {
-				$expiration = self::parseExpiration($data['expiration']);
-				if ($expiration === null) {
-					throw new \InvalidArgumentException('Invalid expiration date format or value: ' . $data['expiration']);
-				}
-			}
-
-			return new self($playerName, $reason, $source, $expiration);
+		$missingFields = array_diff($requiredFields, array_keys($data));
+		if (count($missingFields) > 0) {
+			throw new \InvalidArgumentException('Invalid data format for WarnEntry. Missing fields: ' . implode(', ', $missingFields));
 		}
 
-		return null;
+		$playerName = trim($data['player']);
+		$reason = trim($data['reason']);
+		$source = trim($data['source']);
+
+		$expiration = null;
+		if (isset($data['expiration']) && strtolower(trim($data['expiration'])) !== 'never') {
+			$expiration = self::parseExpiration($data['expiration']);
+		}
+
+		return new self($playerName, $reason, $source, $expiration);
 	}
 
-	private static function parseExpiration(string $expirationString) : ?\DateTime {
+	private static function parseExpiration(string $expirationString) : \DateTime {
 		$dateTime = \DateTime::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
-		if ($dateTime instanceof \DateTime) {
-			return $dateTime;
+		if ($dateTime === false) {
+			throw new \InvalidArgumentException('Invalid expiration date format: ' . $expirationString);
 		}
 
-		return null;
+		return $dateTime;
 	}
 
 	public function getPlayerName() : string {

@@ -100,9 +100,7 @@ class WarnList {
 				if (is_array($warnData)) {
 					$warnEntry = WarnEntry::fromArray($warnData);
 
-					if ($warnEntry !== null) {
-						$this->warns[$playerName][] = $warnEntry;
-					}
+					$this->warns[$playerName][] = $warnEntry;
 				}
 			}
 		}

@@ -84,12 +84,8 @@ class WarnEntry {
 	}
 
 	public function hasExpired() : bool {
-		if ($this->expiration === null) {
-			return false;
-		}
-
 		$now = new \DateTime();
-		return $now >= $this->expiration;
+		return $this->expiration !== null && $this->expiration < $now;
 	}
 
 	public function toArray() : array {

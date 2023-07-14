@@ -44,8 +44,8 @@ class WarnCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0];
-		if (!Player::isValidUserName($playerName)) {
-			$sender->sendMessage(TextFormat::RED . 'Invalid player username. Please provide a valid username.');
+		if (!$this->plugin->getServer()->hasOfflinePlayerData($playerName)) {
+			$sender->sendMessage(TextFormat::RED . 'Invalid player username. The player has not played before.');
 			return false;
 		}
 

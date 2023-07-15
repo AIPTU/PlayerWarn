@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace aiptu\playerwarn\commands;
 
 use aiptu\playerwarn\PlayerWarn;
-use aiptu\playerwarn\WarnEntry;
+use aiptu\playerwarn\utils\Utils;
+use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
@@ -55,7 +56,7 @@ class WarnCommand extends Command implements PluginOwned {
 		$expiration = null;
 		if ($durationString !== null) {
 			try {
-				$expiration = PlayerWarn::parseDurationString($durationString);
+				$expiration = Utils::parseDurationString($durationString);
 			} catch (\InvalidArgumentException $e) {
 				$sender->sendMessage(TextFormat::RED . $e->getMessage());
 				return false;
@@ -73,12 +74,12 @@ class WarnCommand extends Command implements PluginOwned {
 		$player = $this->plugin->getServer()->getPlayerExact($playerName);
 		if ($player instanceof Player) {
 			$player->sendMessage(TextFormat::YELLOW . 'You have been warned by ' . TextFormat::AQUA . $sender->getName() . TextFormat::YELLOW . ' for: ' . TextFormat::AQUA . $reason);
-			$player->sendMessage(TextFormat::YELLOW . 'The warning will ' . ($expiration === null ? TextFormat::AQUA . 'never expire' : 'expire on ' . TextFormat::AQUA . PlayerWarn::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
+			$player->sendMessage(TextFormat::YELLOW . 'The warning will ' . ($expiration === null ? TextFormat::AQUA . 'never expire' : 'expire on ' . TextFormat::AQUA . Utils::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
 		}
 
 		$newWarningCount = $warns->getWarningCount($playerName);
 		$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' has been warned for: ' . TextFormat::YELLOW . $reason);
-		$sender->sendMessage(TextFormat::AQUA . 'The warning will ' . ($expiration === null ? TextFormat::YELLOW . 'never expire' : 'expire on ' . TextFormat::YELLOW . PlayerWarn::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
+		$sender->sendMessage(TextFormat::AQUA . 'The warning will ' . ($expiration === null ? TextFormat::YELLOW . 'never expire' : 'expire on ' . TextFormat::YELLOW . Utils::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
 
 		if ($newWarningCount > 0) {
 			$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $newWarningCount . TextFormat::AQUA . ' warnings.');

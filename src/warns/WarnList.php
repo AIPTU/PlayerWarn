@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace aiptu\playerwarn;
+namespace aiptu\playerwarn\warns;
 
 use pocketmine\utils\Config;
 use function count;

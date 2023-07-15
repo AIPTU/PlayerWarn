@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace aiptu\playerwarn\commands;
 
 use aiptu\playerwarn\PlayerWarn;
-use aiptu\playerwarn\WarnEntry;
+use aiptu\playerwarn\utils\Utils;
+use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
@@ -51,7 +52,7 @@ class WarnsCommand extends Command implements PluginOwned {
 			$reason = $warnEntry->getReason();
 			$source = $warnEntry->getSource();
 			$expiration = $warnEntry->getExpiration();
-			$expirationString = $expiration !== null ? PlayerWarn::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
+			$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
 
 			$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . 'Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";
 		}

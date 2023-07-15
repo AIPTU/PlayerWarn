@@ -22,8 +22,12 @@ use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\TextFormat;
+use function array_pop;
 use function array_sum;
+use function count;
+use function implode;
 use function in_array;
+use function intdiv;
 use function is_int;
 use function preg_match;
 
@@ -172,6 +176,42 @@ class PlayerWarn extends PluginBase implements Listener {
 		$interval = new \DateInterval('P' . $duration['days'] . 'DT' . $duration['hours'] . 'H' . $duration['minutes'] . 'M' . $duration['seconds'] . 'S');
 
 		return $now->add($interval);
+	}
+
+	public static function formatDuration(int $duration) : string {
+		$units = [
+			['year', 60 * 60 * 24 * 365],
+			['day', 60 * 60 * 24],
+			['hour', 60 * 60],
+			['minute', 60],
+			['second', 1],
+		];
+
+		$parts = [];
+		foreach ($units as [$unit, $secondsPerUnit]) {
+			if ($duration >= $secondsPerUnit) {
+				$value = intdiv($duration, $secondsPerUnit);
+				$parts[] = $value . ' ' . $unit . ($value > 1 ? 's' : '');
+				$duration -= $value * $secondsPerUnit;
+			}
+		}
+
+		$count = count($parts);
+
+		if ($count === 0) {
+			return '0 seconds';
+		}
+
+		if ($count === 1) {
+			return $parts[0];
+		}
+
+		if ($count === 2) {
+			return implode(' and ', $parts);
+		}
+
+		$last = array_pop($parts);
+		return implode(', ', $parts) . ', and ' . $last;
 	}
 
 	public function getWarns() : WarnList {

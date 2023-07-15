@@ -22,6 +22,7 @@ use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\TextFormat;
+use Symfony\Component\Filesystem\Path;
 use function array_pop;
 use function array_sum;
 use function count;
@@ -39,7 +40,7 @@ class PlayerWarn extends PluginBase implements Listener {
 	private array $lastWarningCounts = [];
 
 	public function onEnable() : void {
-		$this->warnList = new WarnList($this->getDataFolder() . 'warnings.json');
+		$this->warnList = new WarnList(Path::join($this->getDataFolder(), 'warnings.json'));
 
 		try {
 			$this->loadConfig();

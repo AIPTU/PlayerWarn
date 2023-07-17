@@ -1,9 +1,19 @@
 <?php
 
+/*
+ * Copyright (c) 2023 AIPTU
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE.md file that was distributed with this source code.
+ *
+ * @see https://github.com/AIPTU/PlayerWarn
+ */
+
 declare(strict_types=1);
 
 namespace aiptu\playerwarn;
 
+use aiptu\playerwarn\event\WarnExpiredEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\utils\TextFormat;
@@ -50,5 +60,12 @@ class EventListener implements Listener {
 
 			$this->plugin->removePendingPunishments($playerName);
 		}
+	}
+
+	public function onWarnExpired(WarnExpiredEvent $event) : void {
+		$player = $event->getPlayer();
+		$warnEntry = $event->getWarnEntry();
+
+		$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
 	}
 }

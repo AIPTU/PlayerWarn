@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\warns;
 
+use aiptu\playerwarn\event\WarnAddEvent;
+use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\utils\Config;
 use function count;
 use function is_array;
@@ -34,14 +36,23 @@ class WarnList {
 		$playerName = strtolower($warnEntry->getPlayerName());
 		$this->warns[$playerName][] = $warnEntry;
 
+		$event = new WarnAddEvent($warnEntry);
+		$event->call();
+
 		$this->saveWarns();
 	}
 
 	public function removeWarns(string $playerName) : void {
 		$playerName = strtolower($playerName);
 		if (isset($this->warns[$playerName])) {
-			unset($this->warns[$playerName]);
+			$warns = $this->warns[$playerName];
 
+			foreach ($warns as $warnEntry) {
+				$event = new WarnRemoveEvent($warnEntry);
+				$event->call();
+			}
+
+			unset($this->warns[$playerName]);
 			$this->saveWarns();
 		}
 	}
@@ -54,6 +65,9 @@ class WarnList {
 
 			foreach ($playerWarns as $index => $existingWarnEntry) {
 				if ($existingWarnEntry === $warnEntry) {
+					$event = new WarnRemoveEvent($warnEntry);
+					$event->call();
+
 					unset($playerWarns[$index]);
 					break;
 				}
@@ -86,21 +100,26 @@ class WarnList {
 		$warnsData = $this->config->get('warns', []);
 
 		if (!is_array($warnsData)) {
-			return;
+			throw new \RuntimeException('Invalid data format for warns. Expected an array.');
 		}
 
 		foreach ($warnsData as $playerName => $playerWarns) {
 			$playerName = strtolower($playerName);
 
 			if (!is_array($playerWarns)) {
-				continue;
+				throw new \RuntimeException("Invalid data format for warns of player {$playerName}. Expected an array.");
 			}
 
 			foreach ($playerWarns as $warnData) {
-				if (is_array($warnData)) {
-					$warnEntry = WarnEntry::fromArray($warnData);
+				if (!is_array($warnData)) {
+					throw new \RuntimeException("Invalid data format for a warn entry of player {$playerName}. Expected an array.");
+				}
 
+				try {
+					$warnEntry = WarnEntry::fromArray($warnData);
 					$this->warns[$playerName][] = $warnEntry;
+				} catch (\InvalidArgumentException $e) {
+					throw new \RuntimeException("Error while parsing warn entry of player {$playerName}: " . $e->getMessage());
 				}
 			}
 		}

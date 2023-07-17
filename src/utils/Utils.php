@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * Copyright (c) 2023 AIPTU
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE.md file that was distributed with this source code.
+ *
+ * @see https://github.com/AIPTU/PlayerWarn
+ */
+
 declare(strict_types=1);
 
 namespace aiptu\playerwarn\utils;
@@ -17,8 +26,6 @@ class Utils {
 	 *
 	 * The duration string should be a combination of digits followed by d (days), h (hours),
 	 * m (minutes), and s (seconds). Example: 1d2h30m.
-	 *
-	 * @param string $durationString the duration string to parse
 	 *
 	 * @return null|\DateTime the parsed DateTime object representing the duration, or null if the duration is empty
 	 *
@@ -55,8 +62,6 @@ class Utils {
 	 *
 	 * The duration is formatted as a combination of years, days, hours, minutes, and seconds.
 	 * The resulting string will include only the necessary units, e.g., "2 days 5 hours" or "1 hour 30 minutes".
-	 *
-	 * @param int $duration the duration in seconds
 	 *
 	 * @return string the formatted duration string
 	 */

@@ -1,12 +1,21 @@
 <?php
 
+/*
+ * Copyright (c) 2023 AIPTU
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE.md file that was distributed with this source code.
+ *
+ * @see https://github.com/AIPTU/PlayerWarn
+ */
+
 declare(strict_types=1);
 
 namespace aiptu\playerwarn\task;
 
+use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\PlayerWarn;
 use pocketmine\scheduler\Task;
-use pocketmine\utils\TextFormat;
 
 class ExpiredWarningsTask extends Task {
 	public function __construct(
@@ -25,17 +34,14 @@ class ExpiredWarningsTask extends Task {
 			}
 
 			$playerWarns = $warns->getWarns($playerName);
-			$expiredCount = 0;
 
 			foreach ($playerWarns as $index => $warnEntry) {
 				if ($warnEntry->hasExpired()) {
-					$warns->removeSpecificWarn($warnEntry);
-					++$expiredCount;
-				}
-			}
+					$event = new WarnExpiredEvent($player, $warnEntry);
+					$event->call();
 
-			if ($expiredCount > 0) {
-				$player->sendMessage(TextFormat::YELLOW . "You have {$expiredCount} warning(s) that have expired.");
+					$warns->removeSpecificWarn($warnEntry);
+				}
 			}
 		}
 	}

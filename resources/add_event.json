@@ -1,0 +1,27 @@
+{
+  "content": "A warning has been issued.",
+  "embeds": [
+    {
+      "title": "Player Warned",
+      "description": "Player {player} has been warned for: {reason}.",
+      "color": 16124683,
+      "fields": [
+        {
+          "name": "Source",
+          "value": "{source}"
+        },
+        {
+          "name": "Timestamp",
+          "value": "{timestamp}"
+        },
+        {
+          "name": "Expiration",
+          "value": "{expiration}"
+        }
+      ]
+    }
+  ],
+  "username": "PlayerWarn",
+  "avatar_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Warning.svg/2219px-Warning.svg.png",
+  "attachments": []
+}

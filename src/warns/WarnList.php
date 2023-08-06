@@ -143,7 +143,7 @@ class WarnList {
 	}
 
 	private function removeExpiredWarns() : void {
-		$now = new \DateTime();
+		$now = new \DateTimeImmutable();
 
 		foreach ($this->warns as $playerName => &$playerWarns) {
 			foreach ($playerWarns as $index => $warnEntry) {

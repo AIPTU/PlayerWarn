@@ -23,16 +23,16 @@ use function trim;
 class WarnEntry {
 	public const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
 
-	private \DateTime $timestamp;
+	private \DateTimeImmutable $timestamp;
 
 	public function __construct(
 		private string $playerName,
 		private string $reason,
 		private string $source,
-		private ?\DateTime $expiration = null
+		private ?\DateTimeImmutable $expiration = null
 	) {
 		$this->playerName = strtolower($playerName);
-		$this->timestamp = new \DateTime();
+		$this->timestamp = new \DateTimeImmutable();
 	}
 
 	public static function fromArray(array $data) : self {
@@ -55,8 +55,8 @@ class WarnEntry {
 		return new self($playerName, $reason, $source, $expiration);
 	}
 
-	private static function parseExpiration(string $expirationString) : \DateTime {
-		$dateTime = \DateTime::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
+	private static function parseExpiration(string $expirationString) : \DateTimeImmutable {
+		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
 		if ($dateTime === false) {
 			throw new \InvalidArgumentException('Invalid expiration date format: ' . $expirationString);
 		}
@@ -76,16 +76,16 @@ class WarnEntry {
 		return $this->source;
 	}
 
-	public function getTimestamp() : \DateTime {
+	public function getTimestamp() : \DateTimeImmutable {
 		return $this->timestamp;
 	}
 
-	public function getExpiration() : ?\DateTime {
+	public function getExpiration() : ?\DateTimeImmutable {
 		return $this->expiration;
 	}
 
 	public function hasExpired() : bool {
-		$now = new \DateTime();
+		$now = new \DateTimeImmutable();
 		return $this->expiration !== null && $this->expiration < $now;
 	}
 

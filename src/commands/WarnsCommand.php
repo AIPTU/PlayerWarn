@@ -52,7 +52,7 @@ class WarnsCommand extends Command implements PluginOwned {
 			$reason = $warnEntry->getReason();
 			$source = $warnEntry->getSource();
 			$expiration = $warnEntry->getExpiration();
-			$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTime())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
+			$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
 
 			$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . 'Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";
 		}

@@ -1,5 +1,8 @@
 # PlayerWarn Configuration
 
+# Do not change this (Only for internal use)!
+config-version: 1.0
+
 # The `warning_limit` option specifies the maximum number of warnings a player can have before being banned.
 # Set a positive integer value for this option. The default value is 3.
 warning_limit: 3
@@ -8,3 +11,14 @@ warning_limit: 3
 # Valid options are "kick", "ban", "ban-ip", and "none".
 # The default value is "none", which means no punishment will be applied.
 punishment_type: none
+
+# Discord integration settings
+discord:
+  # Enable or disable the Discord integration.
+  # Set to true to enable the integration, or false to disable it.
+  enabled: false
+
+  # The Discord webhook URL to send messages to.
+  # Replace 'YOUR_WEBHOOK_URL' with the actual URL of your Discord webhook.
+  # Example: "https://discord.com/api/webhooks/123456789012345678/abcdeFGHiJKLmNOpqRSTUvwxYZ1234567890"
+  webhook_url: "YOUR_WEBHOOK_URL"

@@ -1,0 +1,13 @@
+{
+  "content": "A warning has expired.",
+  "embeds": [
+    {
+      "title": "Warning Expired",
+      "description": "Warning for player {player} has expired.",
+      "color": 14931737
+    }
+  ],
+  "username": "PlayerWarn",
+  "avatar_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Warning.svg/2219px-Warning.svg.png",
+  "attachments": []
+}

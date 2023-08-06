@@ -1,0 +1,13 @@
+{
+  "content": "A warning has been removed.",
+  "embeds": [
+    {
+      "title": "Warning Removed",
+      "description": "Warning for player {player} has been removed.",
+      "color": 1630540
+    }
+  ],
+  "username": "PlayerWarn",
+  "avatar_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Warning.svg/2219px-Warning.svg.png",
+  "attachments": []
+}

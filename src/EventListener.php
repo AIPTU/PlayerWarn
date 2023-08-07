@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn;
 
+use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
@@ -91,6 +92,13 @@ class EventListener implements Listener {
 		$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
 		if ($plugin->isDiscordEnabled()) {
 			$plugin->sendExpiredRequest($warnEntry);
+		}
+	}
+
+	public function onPlayerPunishment(PlayerPunishmentEvent $event) : void {
+		$plugin = $this->plugin;
+		if ($plugin->isDiscordEnabled()) {
+			$plugin->sendPunishmentRequest($event);
 		}
 	}
 }

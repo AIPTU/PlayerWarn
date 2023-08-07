@@ -16,6 +16,7 @@ namespace aiptu\playerwarn;
 use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
+use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
@@ -72,6 +73,7 @@ class PlayerWarn extends PluginBase {
 			'add' => Path::join($this->getDataFolder(), 'add_event.json'),
 			'remove' => Path::join($this->getDataFolder(), 'remove_event.json'),
 			'expire' => Path::join($this->getDataFolder(), 'expire_event.json'),
+			'punishment' => Path::join($this->getDataFolder(), 'punishment_event.json'),
 		];
 		try {
 			foreach ($eventTypes as $eventType => $jsonFile) {
@@ -219,6 +221,13 @@ class PlayerWarn extends PluginBase {
 		$server = $player->getServer();
 		$playerName = $player->getName();
 
+		$event = new PlayerPunishmentEvent($player, $punishmentType, $issuerName, $reason);
+		$event->call();
+
+		if ($event->isCancelled()) {
+			return;
+		}
+
 		switch ($punishmentType) {
 			case 'kick':
 				$player->kick(TextFormat::RED . 'You have reached the warning limit.');
@@ -329,35 +338,42 @@ class PlayerWarn extends PluginBase {
 		$expiration = $warnEntry->getExpiration();
 		$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
 
-		$eventData = [
-			'content' => Utils::replaceVars($defaultEventData['content'], [
+		$eventData = [];
+
+		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
+			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
 				'player' => $playerName,
 				'source' => $source,
 				'reason' => $reason,
 				'timestamp' => $timestamp,
 				'expiration' => $expirationString,
-			]),
-		];
+			]);
+		}
+
 		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
 			$embeds = $defaultEventData['embeds'];
 
 			foreach ($embeds as &$embed) {
-				$embed['description'] = Utils::replaceVars($embed['description'], [
-					'player' => $playerName,
-					'source' => $source,
-					'reason' => $reason,
-					'timestamp' => $timestamp,
-					'expiration' => $expirationString,
-				]);
-
-				foreach ($embed['fields'] as &$field) {
-					$field['value'] = Utils::replaceVars($field['value'], [
+				if (isset($embed['description']) && is_string($embed['description'])) {
+					$embed['description'] = Utils::replaceVars($embed['description'], [
 						'player' => $playerName,
 						'source' => $source,
 						'reason' => $reason,
 						'timestamp' => $timestamp,
 						'expiration' => $expirationString,
 					]);
+				}
+
+				if (isset($embed['fields']) && is_array($embed['fields'])) {
+					foreach ($embed['fields'] as &$field) {
+						$field['value'] = Utils::replaceVars($field['value'], [
+							'player' => $playerName,
+							'source' => $source,
+							'reason' => $reason,
+							'timestamp' => $timestamp,
+							'expiration' => $expirationString,
+						]);
+					}
 				}
 			}
 
@@ -376,18 +392,23 @@ class PlayerWarn extends PluginBase {
 
 		$playerName = $warnEntry->getPlayerName();
 
-		$eventData = [
-			'content' => Utils::replaceVars($defaultEventData['content'], [
+		$eventData = [];
+
+		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
+			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
 				'player' => $playerName,
-			]),
-		];
+			]);
+		}
+
 		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
 			$embeds = $defaultEventData['embeds'];
 
 			foreach ($embeds as &$embed) {
-				$embed['description'] = Utils::replaceVars($embed['description'], [
-					'player' => $playerName,
-				]);
+				if (isset($embed['description']) && is_string($embed['description'])) {
+					$embed['description'] = Utils::replaceVars($embed['description'], [
+						'player' => $playerName,
+					]);
+				}
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
@@ -413,23 +434,83 @@ class PlayerWarn extends PluginBase {
 
 		$playerName = $warnEntry->getPlayerName();
 
-		$eventData = [
-			'content' => Utils::replaceVars($defaultEventData['content'], [
+		$eventData = [];
+
+		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
+			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
 				'player' => $playerName,
-			]),
-		];
+			]);
+		}
+
 		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
 			$embeds = $defaultEventData['embeds'];
 
 			foreach ($embeds as &$embed) {
-				$embed['description'] = Utils::replaceVars($embed['description'], [
-					'player' => $playerName,
-				]);
+				if (isset($embed['description']) && is_string($embed['description'])) {
+					$embed['description'] = Utils::replaceVars($embed['description'], [
+						'player' => $playerName,
+					]);
+				}
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
 						$field['value'] = Utils::replaceVars($field['value'], [
 							'player' => $playerName,
+						]);
+					}
+				}
+			}
+
+			$eventData['embeds'] = $embeds;
+		}
+		$mergedEventData = array_merge($defaultEventData, $eventData);
+
+		$this->sendWebhookRequest($mergedEventData);
+	}
+
+	/**
+	 * Sends a webhook request for the PlayerPunishmentEvent.
+	 */
+	public function sendPunishmentRequest(PlayerPunishmentEvent $event) : void {
+		$defaultEventData = $this->webhookData['punishment'];
+
+		$player = $event->getPlayer();
+		$playerName = $player->getName();
+		$punishmentType = $event->getPunishmentType();
+		$issuerName = $event->getIssuerName();
+		$reason = $event->getReason();
+
+		$eventData = [];
+
+		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
+			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
+				'player' => $playerName,
+				'punishmentType' => $punishmentType,
+				'issuerName' => $issuerName,
+				'reason' => $reason,
+			]);
+		}
+
+		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
+			$embeds = $defaultEventData['embeds'];
+
+			foreach ($embeds as &$embed) {
+				if (isset($embed['description']) && is_string($embed['description'])) {
+					$embed['description'] = Utils::replaceVars($embed['description'], [
+						'player' => $playerName,
+						'punishmentType' => $punishmentType,
+						'issuerName' => $issuerName,
+						'reason' => $reason,
+					]);
+				}
+
+				if (isset($embed['fields']) && is_array($embed['fields'])) {
+					foreach ($embed['fields'] as &$field) {
+						$field['value'] = Utils::replaceVars($field['value'], [
+							'player' => $playerName,
+							'punishmentType' => $punishmentType,
+							'issuerName' => $issuerName,
+							'reason' => $reason,
 						]);
 					}
 				}

@@ -1,0 +1,26 @@
+{
+  "content": "Player {player} has been punished.",
+  "embeds": [
+    {
+      "title": "Player Punishment",
+      "color": 16711680,
+      "fields": [
+        {
+          "name": "Punishment Type",
+          "value": "{punishmentType}"
+        },
+        {
+          "name": "Issuer",
+          "value": "{issuerName}"
+        },
+        {
+          "name": "Reason",
+          "value": "{reason}"
+        }
+      ]
+    }
+  ],
+  "username": "PlayerWarn",
+  "avatar_url": "https://raw.githubusercontent.com/AIPTU/PlayerWarn/10d61a33d584494cb8a1de0dc2d1bd9bae45aff3/icon.png",
+  "attachments": []
+}

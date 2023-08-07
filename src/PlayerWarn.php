@@ -49,6 +49,7 @@ class PlayerWarn extends PluginBase {
 	private WarnList $warnList;
 	private int $warningLimit;
 	private string $punishmentType;
+	private array $punishmentMessages = [];
 	private bool $discordEnabled;
 	private string $webhookUrl;
 	private array $pendingPunishments = [];
@@ -113,11 +114,26 @@ class PlayerWarn extends PluginBase {
 		}
 		$this->warningLimit = $warningLimit;
 
-		$punishmentType = $config->get('punishment_type');
+		$punishmentType = $config->getNested('punishment.type', 'none');
 		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip'], true)) {
-			throw new \InvalidArgumentException('Invalid "punishment_type" value in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
+			throw new \InvalidArgumentException('Invalid "punishment.type" value in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
 		}
 		$this->punishmentType = $punishmentType;
+
+		if ($this->punishmentType !== 'none') {
+			$messagesConfig = $config->getNested('punishment.messages', []);
+			if (!is_array($messagesConfig)) {
+				throw new \InvalidArgumentException('Invalid "punishment.messages" configuration. Please make sure it is properly defined as an array.');
+			}
+
+			foreach (['kick', 'ban', 'ban-ip'] as $type) {
+				$message = $messagesConfig[$type] ?? '';
+				if (!is_string($message) || trim($message) === '') {
+					throw new \InvalidArgumentException("Invalid or missing punishment message for '{$type}' in the configuration. Please provide a non-empty string containing the custom message.");
+				}
+				$this->punishmentMessages[$type] = TextFormat::colorize($message);
+			}
+		}
 
 		$discordEnabled = $config->getNested('discord.enabled');
 		if (!is_bool($discordEnabled)) {
@@ -229,16 +245,18 @@ class PlayerWarn extends PluginBase {
 			return;
 		}
 
+		$customPunishmentMessage = $this->punishmentMessages[$punishmentType];
+
 		switch ($punishmentType) {
 			case 'kick':
-				$player->kick(TextFormat::RED . 'You have reached the warning limit.');
+				$player->kick($customPunishmentMessage);
 				break;
 			case 'ban':
 				$banList = $server->getNameBans();
 				if (!$banList->isBanned($playerName)) {
 					$banList->addBan($playerName, $reason, null, $issuerName);
 				}
-				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
+				$player->kick($customPunishmentMessage);
 				break;
 			case 'ban-ip':
 				$ip = $player->getNetworkSession()->getIp();
@@ -246,7 +264,7 @@ class PlayerWarn extends PluginBase {
 				if (!$ipBanList->isBanned($ip)) {
 					$ipBanList->addBan($ip, $reason, null, $issuerName);
 				}
-				$player->kick(TextFormat::RED . 'You have been banned for reaching the warning limit.');
+				$player->kick($customPunishmentMessage);
 				$server->getNetwork()->blockAddress($ip, -1);
 				break;
 		}

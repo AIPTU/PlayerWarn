@@ -7,10 +7,30 @@ config-version: 1.0
 # Set a positive integer value for this option. The default value is 3.
 warning_limit: 3
 
-# The `punishment_type` option specifies the type of punishment to apply when a player reaches the warning limit.
-# Valid options are "kick", "ban", "ban-ip", and "none".
-# The default value is "none", which means no punishment will be applied.
-punishment_type: none
+# Punishment settings
+punishment:
+  # The `type` option specifies the type of punishment to apply when a player reaches the warning limit.
+  # Valid options are "kick", "ban", "ban-ip", and "none".
+  # - "kick": Kicks the player from the server when the warning limit is reached.
+  # - "ban": Bans the player from the server when the warning limit is reached.
+  # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
+  # - "none": No punishment will be applied when the warning limit is reached.
+  # Default value is "none".
+  type: none
+
+  # Custom punishment messages for each type of punishment.
+  # These messages will be shown to the player when the punishment is applied.
+  # You can use color codes by using "§" or "&" before the color code.
+  # Note: Custom messages are only applicable when the `type` is not "none".
+  messages:
+    # Custom message for the "kick" punishment type.
+    kick: '&cYou have been kicked for reaching the warning limit.'
+
+    # Custom message for the "ban" punishment type.
+    ban: '&cYou have been banned for reaching the warning limit.'
+    
+    # Custom message for the "ban-ip" punishment type.
+    ban-ip: '&cYour IP address has been banned for reaching the warning limit.'
 
 # Discord integration settings
 discord:

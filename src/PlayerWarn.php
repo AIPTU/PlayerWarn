@@ -109,30 +109,31 @@ class PlayerWarn extends PluginBase {
 
 		$warningLimit = $config->get('warning_limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
-			throw new \InvalidArgumentException('Invalid warning limit value in the configuration.');
+			throw new \InvalidArgumentException('Invalid or missing "warning_limit" value in the configuration. Please provide a positive integer value.');
 		}
 		$this->warningLimit = $warningLimit;
 
 		$punishmentType = $config->get('punishment_type');
 		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip'], true)) {
-			throw new \InvalidArgumentException('Invalid punishment type in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
+			throw new \InvalidArgumentException('Invalid "punishment_type" value in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
 		}
 		$this->punishmentType = $punishmentType;
 
 		$discordEnabled = $config->getNested('discord.enabled');
-		if (is_bool($discordEnabled)) {
-			$this->discordEnabled = $discordEnabled;
+		if (!is_bool($discordEnabled)) {
+			throw new \InvalidArgumentException('Invalid or missing "discord.enabled" value in the configuration. Please provide a boolean (true/false) value.');
+		}
+		$this->discordEnabled = $discordEnabled;
 
+		if ($this->discordEnabled) {
 			$webhookUrl = $config->getNested('discord.webhook_url');
 			if (!is_string($webhookUrl) || trim($webhookUrl) === '') {
-				throw new \InvalidArgumentException("Config error: 'discord.webhook_url' must be a non-empty string.");
+				throw new \InvalidArgumentException('Invalid or missing "discord.webhook_url" value in the configuration. Please provide a non-empty string containing the Discord webhook URL.');
 			}
 			if (filter_var($webhookUrl, FILTER_VALIDATE_URL) === false) {
-				throw new \InvalidArgumentException("Config error: Invalid URL for 'discord.webhook_url'. The provided value must be a valid URL.");
+				throw new \InvalidArgumentException('Invalid URL for "discord.webhook_url" in the configuration. The provided value must be a valid URL.');
 			}
 			$this->webhookUrl = $webhookUrl;
-		} else {
-			throw new \InvalidArgumentException("Config error: 'discord.enabled' must be a boolean value.");
 		}
 	}
 

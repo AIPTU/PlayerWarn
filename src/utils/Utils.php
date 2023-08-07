@@ -30,7 +30,7 @@ class Utils {
 	 *
 	 * @param string $durationString the duration string to be parsed
 	 *
-	 * @return \DateTimeImmutable|null the parsed DateTimeImmutable object representing the duration,                           or null if the duration string is empty
+	 * @return \DateTimeImmutable|null the parsed DateTimeImmutable object representing the duration, or null if the duration string is empty
 	 *
 	 * @throws \InvalidArgumentException when the duration string format is invalid
 	 */

@@ -35,6 +35,11 @@ class WarnEntry {
 		$this->timestamp = new \DateTimeImmutable();
 	}
 
+	/**
+	 * Create a new WarnEntry object from an array of data.
+	 *
+	 * @throws \InvalidArgumentException if required fields are missing or the expiration date is in an invalid format
+	 */
 	public static function fromArray(array $data) : self {
 		$requiredFields = ['player', 'reason', 'source'];
 
@@ -55,6 +60,11 @@ class WarnEntry {
 		return new self($playerName, $reason, $source, $expiration);
 	}
 
+	/**
+	 * Parses the expiration date from a string and returns a DateTimeImmutable object.
+	 *
+	 * @throws \InvalidArgumentException if the expiration date has an invalid format
+	 */
 	private static function parseExpiration(string $expirationString) : \DateTimeImmutable {
 		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
 		if ($dateTime === false) {
@@ -64,31 +74,52 @@ class WarnEntry {
 		return $dateTime;
 	}
 
+	/**
+	 * Get the name of the player who received the warning.
+	 */
 	public function getPlayerName() : string {
 		return $this->playerName;
 	}
 
+	/**
+	 * Get the reason for issuing the warning.
+	 */
 	public function getReason() : string {
 		return $this->reason;
 	}
 
+	/**
+	 * Get the source or issuer of the warning.
+	 */
 	public function getSource() : string {
 		return $this->source;
 	}
 
+	/**
+	 * Get the timestamp when the warning was created.
+	 */
 	public function getTimestamp() : \DateTimeImmutable {
 		return $this->timestamp;
 	}
 
+	/**
+	 * Get the expiration date and time of the warning.
+	 */
 	public function getExpiration() : ?\DateTimeImmutable {
 		return $this->expiration;
 	}
 
+	/**
+	 * Check if the warning has expired based on the expiration date.
+	 */
 	public function hasExpired() : bool {
 		$now = new \DateTimeImmutable();
 		return $this->expiration !== null && $this->expiration < $now;
 	}
 
+	/**
+	 * Convert the WarnEntry object to an associative array for serialization.
+	 */
 	public function toArray() : array {
 		return [
 			'player' => $this->playerName,

@@ -21,6 +21,7 @@ use function is_array;
 use function strtolower;
 
 class WarnList {
+	/** @var array<string, array<WarnEntry>> */
 	private array $warns = [];
 	private Config $config;
 
@@ -32,6 +33,9 @@ class WarnList {
 		$this->loadWarns();
 	}
 
+	/**
+	 * Adds a new warning entry for a player.
+	 */
 	public function addWarn(WarnEntry $warnEntry) : void {
 		$playerName = strtolower($warnEntry->getPlayerName());
 		$this->warns[$playerName][] = $warnEntry;
@@ -42,6 +46,9 @@ class WarnList {
 		$this->saveWarns();
 	}
 
+	/**
+	 * Removes all warnings for a specific player.
+	 */
 	public function removeWarns(string $playerName) : void {
 		$playerName = strtolower($playerName);
 		if (isset($this->warns[$playerName])) {
@@ -57,6 +64,9 @@ class WarnList {
 		}
 	}
 
+	/**
+	 * Removes a specific warning entry for a player.
+	 */
 	public function removeSpecificWarn(WarnEntry $warnEntry) : void {
 		$playerName = strtolower($warnEntry->getPlayerName());
 
@@ -81,21 +91,36 @@ class WarnList {
 		}
 	}
 
+	/**
+	 * Retrieves all warning entries for a specific player.
+	 *
+	 * @return array<WarnEntry>
+	 */
 	public function getWarns(string $playerName) : array {
 		$playerName = strtolower($playerName);
 		return $this->warns[$playerName] ?? [];
 	}
 
+	/**
+	 * Retrieves the count of warnings for a specific player.
+	 */
 	public function getWarningCount(string $playerName) : int {
 		$playerName = strtolower($playerName);
 		return count($this->getWarns($playerName));
 	}
 
+	/**
+	 * Checks if a player has any warnings.
+	 */
 	public function hasWarnings(string $playerName) : bool {
 		$playerName = strtolower($playerName);
 		return $this->getWarningCount($playerName) > 0;
 	}
 
+	/**
+	 * Loads warning data from the JSON file and initializes the WarnList.
+	 * This method is called automatically during object creation.
+	 */
 	private function loadWarns() : void {
 		$warnsData = $this->config->get('warns', []);
 
@@ -127,6 +152,9 @@ class WarnList {
 		$this->removeExpiredWarns();
 	}
 
+	/**
+	 * Saves the warning data to the JSON file.
+	 */
 	private function saveWarns() : void {
 		$warnsData = [];
 
@@ -142,6 +170,9 @@ class WarnList {
 		$this->config->save();
 	}
 
+	/**
+	 * Removes expired warnings from the WarnList and saves the updated data to the JSON file.
+	 */
 	private function removeExpiredWarns() : void {
 		$now = new \DateTimeImmutable();
 

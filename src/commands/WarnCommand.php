@@ -20,6 +20,7 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
+use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
 use function array_pop;
 use function array_slice;
@@ -27,9 +28,14 @@ use function count;
 use function implode;
 
 class WarnCommand extends Command implements PluginOwned {
+	use PluginOwnedTrait {
+		__construct as setOwningPlugin;
+	}
+
 	public function __construct(
 		private PlayerWarn $plugin
 	) {
+		$this->setOwningPlugin($plugin);
 		parent::__construct('warn', 'Warn a player');
 		$this->setPermission('playerwarn.command.warn');
 	}
@@ -44,8 +50,11 @@ class WarnCommand extends Command implements PluginOwned {
 			return false;
 		}
 
+		$plugin = $this->plugin;
+		$server = $plugin->getServer();
+
 		$playerName = $args[0];
-		if (!$this->plugin->getServer()->hasOfflinePlayerData($playerName)) {
+		if (!$server->hasOfflinePlayerData($playerName)) {
 			$sender->sendMessage(TextFormat::RED . 'Invalid player username. The player has not played before.');
 			return false;
 		}
@@ -63,15 +72,15 @@ class WarnCommand extends Command implements PluginOwned {
 			}
 		}
 
-		$warningLimit = $this->plugin->getWarningLimit();
-		$punishmentType = $this->plugin->getPunishmentType();
+		$warningLimit = $plugin->getWarningLimit();
+		$punishmentType = $plugin->getPunishmentType();
 
-		$warns = $this->plugin->getWarns();
+		$warns = $plugin->getWarns();
 
 		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName(), $expiration);
 		$warns->addWarn($warnEntry);
 
-		$player = $this->plugin->getServer()->getPlayerExact($playerName);
+		$player = $server->getPlayerExact($playerName);
 		if ($player instanceof Player) {
 			$player->sendMessage(TextFormat::YELLOW . 'You have been warned by ' . TextFormat::AQUA . $sender->getName() . TextFormat::YELLOW . ' for: ' . TextFormat::AQUA . $reason);
 			$player->sendMessage(TextFormat::YELLOW . 'The warning will ' . ($expiration === null ? TextFormat::AQUA . 'never expire' : 'expire on ' . TextFormat::AQUA . Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
@@ -89,17 +98,13 @@ class WarnCommand extends Command implements PluginOwned {
 			$sender->sendMessage(TextFormat::RED . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::RED . ' has reached the warning limit and will be punished.');
 
 			if ($player instanceof Player) {
-				$this->plugin->applyPunishment($player, $punishmentType, $sender->getName(), $reason);
+				$plugin->applyPunishment($player, $punishmentType, $sender->getName(), $reason);
 			} else {
-				$this->plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
+				$plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
 				$sender->sendMessage(TextFormat::YELLOW . 'Player ' . TextFormat::AQUA . $playerName . TextFormat::YELLOW . ' is currently offline. The punishment will be applied when they rejoin.');
 			}
 		}
 
 		return true;
-	}
-
-	public function getOwningPlugin() : PlayerWarn {
-		return $this->plugin;
 	}
 }

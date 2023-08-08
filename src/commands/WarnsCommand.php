@@ -19,13 +19,19 @@ use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
+use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
 use function count;
 
 class WarnsCommand extends Command implements PluginOwned {
+	use PluginOwnedTrait {
+		__construct as setOwningPlugin;
+	}
+
 	public function __construct(
 		private PlayerWarn $plugin
 	) {
+		$this->setOwningPlugin($plugin);
 		parent::__construct('warns', 'View warnings for a player');
 		$this->setPermission('playerwarn.command.warns');
 	}
@@ -60,9 +66,5 @@ class WarnsCommand extends Command implements PluginOwned {
 		$sender->sendMessage($message);
 
 		return true;
-	}
-
-	public function getOwningPlugin() : PlayerWarn {
-		return $this->plugin;
 	}
 }

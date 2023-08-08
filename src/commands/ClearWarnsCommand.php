@@ -17,13 +17,19 @@ use aiptu\playerwarn\PlayerWarn;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
+use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
 use function count;
 
 class ClearWarnsCommand extends Command implements PluginOwned {
+	use PluginOwnedTrait {
+		__construct as setOwningPlugin;
+	}
+
 	public function __construct(
 		private PlayerWarn $plugin
 	) {
+		$this->setOwningPlugin($plugin);
 		parent::__construct('clearwarns', 'Clear warnings for a player');
 		$this->setPermission('playerwarn.command.clearwarns');
 	}
@@ -53,9 +59,5 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		$sender->sendMessage(TextFormat::GREEN . "Cleared {$warningCount} warning(s) for {$playerName}.");
 
 		return true;
-	}
-
-	public function getOwningPlugin() : PlayerWarn {
-		return $this->plugin;
 	}
 }

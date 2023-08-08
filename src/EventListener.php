@@ -27,7 +27,7 @@ class EventListener implements Listener {
 	) {}
 
 	/**
-	 * @priority MONITOR
+	 * @priority HIGH
 	 */
 	public function onPlayerJoin(PlayerJoinEvent $event) : void {
 		$plugin = $this->plugin;
@@ -59,7 +59,7 @@ class EventListener implements Listener {
 				$punishmentType = $pendingPunishment['punishmentType'];
 				$reason = $pendingPunishment['reason'];
 				$issuerName = $pendingPunishment['issuerName'];
-				$plugin->applyPunishment($player, $punishmentType, $issuerName, $reason);
+				$plugin->scheduleDelayedPunishment($player, $punishmentType, $issuerName, $reason);
 			}
 
 			$plugin->removePendingPunishments($playerName);

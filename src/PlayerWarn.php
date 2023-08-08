@@ -17,6 +17,7 @@ use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\event\PlayerPunishmentEvent;
+use aiptu\playerwarn\task\DelayedPunishmentTask;
 use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
@@ -48,6 +49,8 @@ class PlayerWarn extends PluginBase {
 
 	private WarnList $warnList;
 	private int $warningLimit;
+	private int $punishmentDelay;
+	private string $warningMessage;
 	private string $punishmentType;
 	private array $punishmentMessages = [];
 	private bool $discordEnabled;
@@ -108,11 +111,23 @@ class PlayerWarn extends PluginBase {
 
 		$config = $this->getConfig();
 
-		$warningLimit = $config->get('warning_limit');
+		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
-			throw new \InvalidArgumentException('Invalid or missing "warning_limit" value in the configuration. Please provide a positive integer value.');
+			throw new \InvalidArgumentException('Invalid or missing "warning.limit" value in the configuration. Please provide a positive integer value.');
 		}
 		$this->warningLimit = $warningLimit;
+
+		$punishmentDelay = $config->getNested('warning.delay');
+		if (!is_int($punishmentDelay) || $punishmentDelay < 0) {
+			throw new \InvalidArgumentException('Invalid or missing "warning.delay" value in the configuration. Please provide a positive integer value.');
+		}
+		$this->punishmentDelay = $punishmentDelay;
+
+		$warningMessage = $config->getNested('warning.message');
+		if (!is_string($warningMessage) || trim($warningMessage) === '') {
+			throw new \InvalidArgumentException('Invalid or missing "warning.message" in the configuration. Please provide a non-empty string value.');
+		}
+		$this->warningMessage = TextFormat::colorize($warningMessage);
 
 		$punishmentType = $config->getNested('punishment.type', 'none');
 		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip'], true)) {
@@ -229,6 +244,23 @@ class PlayerWarn extends PluginBase {
 	 */
 	public function isDiscordEnabled() : bool {
 		return $this->discordEnabled;
+	}
+
+	/**
+	 * Schedules a delayed punishment for the player and sends a warning message.
+	 */
+	public function scheduleDelayedPunishment(Player $player, string $punishmentType, string $issuerName, string $reason) : void {
+		$delay = $this->punishmentDelay;
+
+		if ($delay < 0) {
+			$this->applyPunishment($player, $punishmentType, $issuerName, $reason);
+			return;
+		}
+
+		$this->getScheduler()->scheduleDelayedTask(new DelayedPunishmentTask($this, $player, $punishmentType, $issuerName, $reason), $delay * 20);
+
+		$warningMessage = Utils::replaceVars($this->warningMessage, ['delay' => $delay]);
+		$player->sendMessage($warningMessage);
 	}
 
 	/**

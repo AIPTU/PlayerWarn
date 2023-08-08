@@ -98,7 +98,7 @@ class WarnCommand extends Command implements PluginOwned {
 			$sender->sendMessage(TextFormat::RED . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::RED . ' has reached the warning limit and will be punished.');
 
 			if ($player instanceof Player) {
-				$plugin->applyPunishment($player, $punishmentType, $sender->getName(), $reason);
+				$plugin->scheduleDelayedPunishment($player, $punishmentType, $sender->getName(), $reason);
 			} else {
 				$plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
 				$sender->sendMessage(TextFormat::YELLOW . 'Player ' . TextFormat::AQUA . $playerName . TextFormat::YELLOW . ' is currently offline. The punishment will be applied when they rejoin.');

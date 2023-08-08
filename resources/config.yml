@@ -3,9 +3,23 @@
 # Do not change this (Only for internal use)!
 config-version: 1.0
 
-# The `warning_limit` option specifies the maximum number of warnings a player can have before being banned.
-# Set a positive integer value for this option. The default value is 3.
-warning_limit: 3
+# Warning settings
+warning:
+  # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.
+  # Set to a positive integer. Default value: 3
+  limit: 3
+
+  # The `delay` option specifies the delay time in seconds before applying the punishment.
+  # If the delay is greater than 0, a warning message will be sent to the player.
+  # If the delay is 0 or negative, the punishment will be applied immediately without delay.
+  # Default value: 5
+  delay: 5
+
+  # The `message` option specifies the warning message template to be sent to the player.
+  # The `{delay}` placeholder will be replaced with the actual delay time in seconds.
+  # You can use color codes by using "§" or "&" before the color code.
+  # Default value: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
+  message: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
 
 # Punishment settings
 punishment:

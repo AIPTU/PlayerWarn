@@ -71,21 +71,17 @@ class PlayerWarn extends PluginBase {
 			throw new DisablePluginException();
 		}
 
-			try {
-				$this->loadConfig();
-			} catch (\Throwable $e) {
-				$this->getLogger()->error('An error occurred while loading the configuration: ' . $e->getMessage());
-				throw new DisablePluginException();
-			}
-
-			$eventTypes = [
-				'add' => Path::join($this->getDataFolder(), 'add_event.json'),
-				'remove' => Path::join($this->getDataFolder(), 'remove_event.json'),
-				'expire' => Path::join($this->getDataFolder(), 'expire_event.json'),
-				'punishment' => Path::join($this->getDataFolder(), 'punishment_event.json'),
-			];
 		try {
-			foreach ($eventTypes as $eventType => $jsonFile) {
+			$this->loadConfig();
+		} catch (\Throwable $e) {
+			$this->getLogger()->error('An error occurred while loading the configuration: ' . $e->getMessage());
+			throw new DisablePluginException();
+		}
+
+		$eventTypes = ['add', 'remove', 'expire', 'punishment'];
+		try {
+			foreach ($eventTypes as $eventType) {
+				$jsonFile = Path::join($this->getDataFolder(), 'webhooks', "{$eventType}_event.json");
 				$this->webhookData[$eventType] = $this->loadWebhookData($jsonFile, $eventType);
 			}
 		} catch (\InvalidArgumentException $e) {
@@ -211,7 +207,7 @@ class PlayerWarn extends PluginBase {
 		}
 
 		try {
-			$decodedData = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
+			$decodedData = json_decode($jsonData, true, flags: JSON_THROW_ON_ERROR);
 		} catch (\JsonException $e) {
 			throw new \InvalidArgumentException("Unable to parse JSON data from file '{$jsonFile}' for '{$eventType}' event. Reason: " . $e->getMessage());
 		}

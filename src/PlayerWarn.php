@@ -64,21 +64,26 @@ class PlayerWarn extends PluginBase {
 			$this->saveResource($resource->getFilename());
 		}
 
-		$this->warnList = new WarnList(Path::join($this->getDataFolder(), 'warnings.json'));
-
 		try {
-			$this->loadConfig();
+			$this->warnList = new WarnList(Path::join($this->getDataFolder(), 'warnings.json'));
 		} catch (\Throwable $e) {
-			$this->getLogger()->error('An error occurred while loading the configuration: ' . $e->getMessage());
+			$this->getLogger()->error('An error occurred while loading the warn list: ' . $e->getMessage());
 			throw new DisablePluginException();
 		}
 
-		$eventTypes = [
-			'add' => Path::join($this->getDataFolder(), 'add_event.json'),
-			'remove' => Path::join($this->getDataFolder(), 'remove_event.json'),
-			'expire' => Path::join($this->getDataFolder(), 'expire_event.json'),
-			'punishment' => Path::join($this->getDataFolder(), 'punishment_event.json'),
-		];
+			try {
+				$this->loadConfig();
+			} catch (\Throwable $e) {
+				$this->getLogger()->error('An error occurred while loading the configuration: ' . $e->getMessage());
+				throw new DisablePluginException();
+			}
+
+			$eventTypes = [
+				'add' => Path::join($this->getDataFolder(), 'add_event.json'),
+				'remove' => Path::join($this->getDataFolder(), 'remove_event.json'),
+				'expire' => Path::join($this->getDataFolder(), 'expire_event.json'),
+				'punishment' => Path::join($this->getDataFolder(), 'punishment_event.json'),
+			];
 		try {
 			foreach ($eventTypes as $eventType => $jsonFile) {
 				$this->webhookData[$eventType] = $this->loadWebhookData($jsonFile, $eventType);

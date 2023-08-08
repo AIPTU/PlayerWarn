@@ -20,6 +20,7 @@ use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\task\DelayedPunishmentTask;
 use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
+use aiptu\playerwarn\task\UpdateNotifierTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use aiptu\playerwarn\warns\WarnList;
@@ -32,6 +33,7 @@ use pocketmine\utils\TextFormat;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
+use function array_keys;
 use function array_merge;
 use function filter_var;
 use function in_array;
@@ -48,6 +50,7 @@ class PlayerWarn extends PluginBase {
 	private const CONFIG_VERSION = 1.0;
 
 	private WarnList $warnList;
+	private bool $updateNotifierEnabled;
 	private int $warningLimit;
 	private int $punishmentDelay;
 	private string $warningMessage;
@@ -60,8 +63,8 @@ class PlayerWarn extends PluginBase {
 	private array $webhookData = [];
 
 	public function onEnable() : void {
-		foreach ($this->getResources() as $resource) {
-			$this->saveResource($resource->getFilename());
+		foreach (array_keys($this->getResources()) as $resource) {
+			$this->saveResource($resource);
 		}
 
 		try {
@@ -99,6 +102,10 @@ class PlayerWarn extends PluginBase {
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
 
 		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), 20);
+
+		if ($this->updateNotifierEnabled) {
+			$this->getServer()->getAsyncPool()->submitTask(new UpdateNotifierTask($this->getName(), $this->getDescription()->getVersion()));
+		}
 	}
 
 	/**
@@ -111,6 +118,12 @@ class PlayerWarn extends PluginBase {
 		$this->checkConfig();
 
 		$config = $this->getConfig();
+
+		$updateNotifierEnabled = $config->get('update_notifier');
+		if (!is_bool($updateNotifierEnabled)) {
+			throw new \InvalidArgumentException('Invalid or missing "update_notifier" value in the configuration. Please provide a boolean (true/false) value.');
+		}
+		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
 		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {

@@ -3,6 +3,9 @@
 # Do not change this (Only for internal use)!
 config-version: 1.0
 
+# Enable or disable the auto update checker notifier.
+update_notifier: true
+
 # Warning settings
 warning:
   # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.

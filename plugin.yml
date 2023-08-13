@@ -1,7 +1,7 @@
 name: PlayerWarn
 main: aiptu\playerwarn\PlayerWarn
 src-namespace-prefix: aiptu\playerwarn
-version: 1.1.0-dev
+version: 1.1.0
 api: [5.0.0]
 author: AIPTU
 permissions:

@@ -39,10 +39,7 @@ class WarnList {
 	public function addWarn(WarnEntry $warnEntry) : void {
 		$playerName = strtolower($warnEntry->getPlayerName());
 		$this->warns[$playerName][] = $warnEntry;
-
-		$event = new WarnAddEvent($warnEntry);
-		$event->call();
-
+		(new WarnAddEvent($warnEntry))->call();
 		$this->saveWarns();
 	}
 
@@ -52,13 +49,9 @@ class WarnList {
 	public function removeWarns(string $playerName) : void {
 		$playerName = strtolower($playerName);
 		if (isset($this->warns[$playerName])) {
-			$warns = $this->warns[$playerName];
-
-			foreach ($warns as $warnEntry) {
-				$event = new WarnRemoveEvent($warnEntry);
-				$event->call();
+			foreach ($this->warns[$playerName] as $warnEntry) {
+				(new WarnRemoveEvent($warnEntry))->call();
 			}
-
 			unset($this->warns[$playerName]);
 			$this->saveWarns();
 		}
@@ -69,24 +62,18 @@ class WarnList {
 	 */
 	public function removeSpecificWarn(WarnEntry $warnEntry) : void {
 		$playerName = strtolower($warnEntry->getPlayerName());
-
 		if (isset($this->warns[$playerName])) {
 			$playerWarns = &$this->warns[$playerName];
-
 			foreach ($playerWarns as $index => $existingWarnEntry) {
 				if ($existingWarnEntry === $warnEntry) {
-					$event = new WarnRemoveEvent($warnEntry);
-					$event->call();
-
+					(new WarnRemoveEvent($warnEntry))->call();
 					unset($playerWarns[$index]);
 					break;
 				}
 			}
-
 			if (count($playerWarns) === 0) {
 				unset($this->warns[$playerName]);
 			}
-
 			$this->saveWarns();
 		}
 	}
@@ -97,15 +84,13 @@ class WarnList {
 	 * @return array<WarnEntry>
 	 */
 	public function getWarns(string $playerName) : array {
-		$playerName = strtolower($playerName);
-		return $this->warns[$playerName] ?? [];
+		return $this->warns[strtolower($playerName)] ?? [];
 	}
 
 	/**
 	 * Retrieves the count of warnings for a specific player.
 	 */
 	public function getWarningCount(string $playerName) : int {
-		$playerName = strtolower($playerName);
 		return count($this->getWarns($playerName));
 	}
 
@@ -113,7 +98,6 @@ class WarnList {
 	 * Checks if a player has any warnings.
 	 */
 	public function hasWarnings(string $playerName) : bool {
-		$playerName = strtolower($playerName);
 		return $this->getWarningCount($playerName) > 0;
 	}
 
@@ -129,8 +113,6 @@ class WarnList {
 		}
 
 		foreach ($warnsData as $playerName => $playerWarns) {
-			$playerName = strtolower($playerName);
-
 			if (!is_array($playerWarns)) {
 				throw new \RuntimeException("Invalid data format for warns of player {$playerName}. Expected an array.");
 			}
@@ -141,8 +123,7 @@ class WarnList {
 				}
 
 				try {
-					$warnEntry = WarnEntry::fromArray($warnData);
-					$this->warns[$playerName][] = $warnEntry;
+					$this->warns[$playerName][] = WarnEntry::fromArray($warnData);
 				} catch (\InvalidArgumentException $e) {
 					throw new \RuntimeException("Error while parsing warn entry of player {$playerName}: " . $e->getMessage());
 				}
@@ -157,15 +138,11 @@ class WarnList {
 	 */
 	private function saveWarns() : void {
 		$warnsData = [];
-
 		foreach ($this->warns as $playerName => $playerWarns) {
-			$playerName = strtolower($playerName);
-
 			foreach ($playerWarns as $warnEntry) {
 				$warnsData[$playerName][] = $warnEntry->toArray();
 			}
 		}
-
 		$this->config->set('warns', $warnsData);
 		$this->config->save();
 	}
@@ -178,16 +155,14 @@ class WarnList {
 
 		foreach ($this->warns as $playerName => &$playerWarns) {
 			foreach ($playerWarns as $index => $warnEntry) {
-				if ($warnEntry->hasExpired()) {
+				if ($warnEntry->hasExpired($now)) {
 					unset($playerWarns[$index]);
 				}
 			}
-
 			if (count($playerWarns) === 0) {
 				unset($this->warns[$playerName]);
 			}
 		}
-
 		$this->saveWarns();
 	}
 }

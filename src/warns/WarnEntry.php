@@ -112,8 +112,8 @@ class WarnEntry {
 	/**
 	 * Check if the warning has expired based on the expiration date.
 	 */
-	public function hasExpired() : bool {
-		$now = new \DateTimeImmutable();
+	public function hasExpired(?\DateTimeImmutable $now = null) : bool {
+		$now ??= new \DateTimeImmutable();
 		return $this->expiration !== null && $this->expiration < $now;
 	}
 

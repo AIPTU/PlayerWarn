@@ -16,13 +16,16 @@ namespace aiptu\playerwarn\commands;
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
+use aiptu\playerwarn\warns\WarnList;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
 use function array_pop;
+use function array_shift;
 use function array_slice;
 use function count;
 use function implode;
@@ -36,7 +39,11 @@ class WarnCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
-		parent::__construct('warn', 'Warn a player');
+		parent::__construct(
+			'warn',
+			'Warn a player',
+			'/warn <player> <reason> [duration]',
+		);
 		$this->setPermission('playerwarn.command.warn');
 	}
 
@@ -46,65 +53,111 @@ class WarnCommand extends Command implements PluginOwned {
 		}
 
 		if (count($args) < 2) {
-			$sender->sendMessage(TextFormat::RED . 'Usage: /warn <player> <reason> [duration]');
-			return false;
+			throw new InvalidCommandSyntaxException();
 		}
 
-		$plugin = $this->plugin;
-		$server = $plugin->getServer();
-
 		$playerName = $args[0];
+		$server = $this->plugin->getServer();
 		if (!$server->hasOfflinePlayerData($playerName)) {
 			$sender->sendMessage(TextFormat::RED . 'Invalid player username. The player has not played before.');
 			return false;
 		}
 
-		$reason = implode(' ', array_slice($args, 1));
-		$durationString = isset($args[2]) ? array_pop($args) : null;
+		[$playerName, $reason, $expiration] = $this->parseArguments($args, $sender);
 
-		$expiration = null;
-		if ($durationString !== null) {
-			try {
-				$expiration = Utils::parseDurationString($durationString);
-			} catch (\InvalidArgumentException $e) {
-				$sender->sendMessage(TextFormat::RED . $e->getMessage());
-				return false;
-			}
+		$this->addWarning($playerName, $reason, $sender, $expiration);
+
+		return true;
+	}
+
+	private function parseArguments(array $args, CommandSender $sender) : array {
+		$playerName = array_shift($args);
+		$reason = implode(' ', array_slice($args, 0, -1)); // Join all but the last argument as the reason
+		$expiration = count($args) > 0 ? $this->parseExpiration(array_pop($args), $sender) : null;
+
+		return [$playerName, $reason, $expiration];
+	}
+
+	private function parseExpiration(?string $durationString, CommandSender $sender) : ?\DateTimeImmutable {
+		if ($durationString === null) {
+			return null;
 		}
 
-		$warningLimit = $plugin->getWarningLimit();
-		$punishmentType = $plugin->getPunishmentType();
+		try {
+			return Utils::parseDurationString($durationString);
+		} catch (\InvalidArgumentException $e) {
+			$sender->sendMessage(TextFormat::RED . $e->getMessage());
+			return null;
+		}
+	}
 
-		$warns = $plugin->getWarns();
-
+	private function addWarning(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration) : void {
+		$warns = $this->plugin->getWarns();
 		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName(), $expiration);
 		$warns->addWarn($warnEntry);
 
-		$player = $server->getPlayerExact($playerName);
-		if ($player instanceof Player) {
-			$player->sendMessage(TextFormat::YELLOW . 'You have been warned by ' . TextFormat::AQUA . $sender->getName() . TextFormat::YELLOW . ' for: ' . TextFormat::AQUA . $reason);
-			$player->sendMessage(TextFormat::YELLOW . 'The warning will ' . ($expiration === null ? TextFormat::AQUA . 'never expire' : 'expire on ' . TextFormat::AQUA . Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
-		}
+		$this->sendMessageToPlayer($playerName, $reason, $sender, $expiration);
+		$this->sendMessageToSender($playerName, $reason, $sender, $expiration, $warns);
 
+		$this->applyPotentialPunishment($playerName, $reason, $sender, $warns);
+	}
+
+	private function sendMessageToPlayer(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration) : void {
+		$player = $this->plugin->getServer()->getPlayerExact($playerName);
+		if ($player instanceof Player) {
+			$expirationText = $expiration === null
+				? 'never expire'
+				: Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})";
+
+			$message = [
+				TextFormat::YELLOW . 'You have been warned by ' . TextFormat::AQUA . $sender->getName() . TextFormat::YELLOW . ' for: ' . TextFormat::AQUA . $reason,
+				TextFormat::YELLOW . 'The warning will ' . $expirationText,
+			];
+
+			$this->sendMultipleMessages($player, $message);
+		}
+	}
+
+	private function sendMessageToSender(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration, WarnList $warns) : void {
 		$newWarningCount = $warns->getWarningCount($playerName);
-		$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' has been warned for: ' . TextFormat::YELLOW . $reason);
-		$sender->sendMessage(TextFormat::AQUA . 'The warning will ' . ($expiration === null ? TextFormat::YELLOW . 'never expire' : 'expire on ' . TextFormat::YELLOW . Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})"));
+		$expirationText = $expiration === null
+			? 'never expire'
+			: Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})";
+
+		$message = [
+			TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' has been warned for: ' . TextFormat::YELLOW . $reason,
+			TextFormat::AQUA . 'The warning will ' . $expirationText,
+		];
 
 		if ($newWarningCount > 0) {
-			$sender->sendMessage(TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $newWarningCount . TextFormat::AQUA . ' warnings.');
+			$message[] = TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $newWarningCount . TextFormat::AQUA . ' warnings.';
 		}
+
+		$this->sendMultipleMessages($sender, $message);
+	}
+
+	private function sendMultipleMessages(CommandSender $recipient, array $messages) : void {
+		foreach ($messages as $message) {
+			$recipient->sendMessage($message);
+		}
+	}
+
+	private function applyPotentialPunishment(string $playerName, string $reason, CommandSender $sender, WarnList $warns) : void {
+		$warningLimit = $this->plugin->getWarningLimit();
+		$punishmentType = $this->plugin->getPunishmentType();
+
+		$newWarningCount = $warns->getWarningCount($playerName);
 
 		if ($newWarningCount >= $warningLimit && $punishmentType !== 'none') {
 			$sender->sendMessage(TextFormat::RED . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::RED . ' has reached the warning limit and will be punished.');
 
+			$player = $this->plugin->getServer()->getPlayerExact($playerName);
 			if ($player instanceof Player) {
-				$plugin->scheduleDelayedPunishment($player, $punishmentType, $sender->getName(), $reason);
+				$this->plugin->scheduleDelayedPunishment($player, $punishmentType, $sender->getName(), $reason);
 			} else {
-				$plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
+				$this->plugin->addPendingPunishment($playerName, $punishmentType, $sender->getName(), $reason);
 				$sender->sendMessage(TextFormat::YELLOW . 'Player ' . TextFormat::AQUA . $playerName . TextFormat::YELLOW . ' is currently offline. The punishment will be applied when they rejoin.');
 			}
 		}
-
-		return true;
 	}
 }

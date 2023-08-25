@@ -16,6 +16,7 @@ namespace aiptu\playerwarn\commands;
 use aiptu\playerwarn\PlayerWarn;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
@@ -30,7 +31,11 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
-		parent::__construct('clearwarns', 'Clear warnings for a player');
+		parent::__construct(
+			'clearwarns',
+			'Clear warnings for a player',
+			'/clearwarns <player>',
+		);
 		$this->setPermission('playerwarn.command.clearwarns');
 	}
 
@@ -40,8 +45,7 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		}
 
 		if (count($args) < 1) {
-			$sender->sendMessage(TextFormat::RED . 'Usage: /clearwarns <player>');
-			return false;
+			throw new InvalidCommandSyntaxException();
 		}
 
 		$playerName = $args[0];

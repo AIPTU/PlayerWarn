@@ -32,7 +32,11 @@ class WarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
-		parent::__construct('warns', 'View warnings for a player');
+		parent::__construct(
+			'warns',
+			'View warnings for a player',
+			'/warns [player]',
+		);
 		$this->setPermission('playerwarn.command.warns');
 	}
 

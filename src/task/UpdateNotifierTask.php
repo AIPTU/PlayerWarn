@@ -17,9 +17,7 @@ use pocketmine\plugin\ApiVersion;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\Server;
 use pocketmine\utils\Internet;
-use function assert;
 use function is_array;
-use function is_string;
 use function json_decode;
 use function version_compare;
 use const JSON_THROW_ON_ERROR;
@@ -33,31 +31,56 @@ class UpdateNotifierTask extends AsyncTask {
 	public function onRun() : void {
 		$result = Internet::getURL(
 			page: 'https://poggit.pmmp.io/releases.min.json?name=' . $this->name,
+			err: $err
 		);
-		$this->setResult($result?->getBody());
+		if ($result !== null) {
+			$versions = json_decode($result->getBody(), true, flags: JSON_THROW_ON_ERROR);
+			if (is_array($versions)) {
+				$this->setResult(['versions' => $versions, 'error' => $err]);
+			}
+		}
 	}
 
 	public function onCompletion() : void {
+		$currentApiVersion = Server::getInstance()->getApiVersion();
 		$logger = Server::getInstance()->getLogger();
-		$body = $this->getResult();
-		assert(is_string($body));
 
-		$versions = json_decode($body, true, flags: JSON_THROW_ON_ERROR);
-		if (!is_array($versions)) {
-			$logger->warning('Failed to decode JSON data for updates.');
+		/** @var array{versions: array, error: string|null} $results */
+		$results = $this->getResult();
+
+		$error = $results['error'];
+		if ($error !== null) {
+			$logger->error('Update notify error: ' . $error);
 			return;
 		}
 
-		$currentApiVersion = Server::getInstance()->getApiVersion();
-
+		/**
+		 * @var array{
+		 *      version: string,
+		 *      api: array{
+		 *          from: string,
+		 *          to: string
+		 *      }[],
+		 *      artifact_url: string
+		 *  }[] $versions
+		 */
+		$versions = $results['versions'];
 		foreach ($versions as $version) {
-			if (version_compare($this->version, $version['version']) === -1
-				&& ApiVersion::isCompatible($currentApiVersion, $version['api'][0])) {
+			if (
+				version_compare($this->version, $version['version'], '>=')
+				|| !ApiVersion::isCompatible($currentApiVersion, $version['api'][0])
+			) {
+				continue;
+			}
+
+			if ($this->version !== $version['version']) {
 				$downloadUrl = $version['artifact_url'] . '/' . $this->name . '.phar';
 				$message = "{$this->name} v{$version['version']} is available for download at {$downloadUrl}";
 				$logger->notice($message);
-				break;
+				return;
 			}
 		}
+
+		$logger->info("No compatible update found for {$this->name} (Current version: {$this->version}).");
 	}
 }

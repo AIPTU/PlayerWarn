@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2023 AIPTU
+ * Copyright (c) 2023-2024 AIPTU
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -52,6 +52,7 @@ class WarnList {
 			foreach ($this->warns[$playerName] as $warnEntry) {
 				(new WarnRemoveEvent($warnEntry))->call();
 			}
+
 			unset($this->warns[$playerName]);
 			$this->saveWarns();
 		}
@@ -71,9 +72,11 @@ class WarnList {
 					break;
 				}
 			}
+
 			if (count($playerWarns) === 0) {
 				unset($this->warns[$playerName]);
 			}
+
 			$this->saveWarns();
 		}
 	}
@@ -143,6 +146,7 @@ class WarnList {
 				$warnsData[$playerName][] = $warnEntry->toArray();
 			}
 		}
+
 		$this->config->set('warns', $warnsData);
 		$this->config->save();
 	}
@@ -159,10 +163,12 @@ class WarnList {
 					unset($playerWarns[$index]);
 				}
 			}
+
 			if (count($playerWarns) === 0) {
 				unset($this->warns[$playerName]);
 			}
 		}
+
 		$this->saveWarns();
 	}
 }

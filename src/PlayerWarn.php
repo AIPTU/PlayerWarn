@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2023 AIPTU
+ * Copyright (c) 2023-2024 AIPTU
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -123,30 +123,35 @@ class PlayerWarn extends PluginBase {
 		if (!is_bool($updateNotifierEnabled)) {
 			throw new \InvalidArgumentException('Invalid or missing "update_notifier" value in the configuration. Please provide a boolean (true/false) value.');
 		}
+
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
 		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
 			throw new \InvalidArgumentException('Invalid or missing "warning.limit" value in the configuration. Please provide a positive integer value.');
 		}
+
 		$this->warningLimit = $warningLimit;
 
 		$punishmentDelay = $config->getNested('warning.delay');
 		if (!is_int($punishmentDelay) || $punishmentDelay < 0) {
 			throw new \InvalidArgumentException('Invalid or missing "warning.delay" value in the configuration. Please provide a positive integer value.');
 		}
+
 		$this->punishmentDelay = $punishmentDelay;
 
 		$warningMessage = $config->getNested('warning.message');
 		if (!is_string($warningMessage) || trim($warningMessage) === '') {
 			throw new \InvalidArgumentException('Invalid or missing "warning.message" in the configuration. Please provide a non-empty string value.');
 		}
+
 		$this->warningMessage = TextFormat::colorize($warningMessage);
 
 		$punishmentType = $config->getNested('punishment.type', 'none');
 		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip'], true)) {
 			throw new \InvalidArgumentException('Invalid "punishment.type" value in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
 		}
+
 		$this->punishmentType = $punishmentType;
 
 		if ($this->punishmentType !== 'none') {
@@ -160,6 +165,7 @@ class PlayerWarn extends PluginBase {
 				if (!is_string($message) || trim($message) === '') {
 					throw new \InvalidArgumentException("Invalid or missing punishment message for '{$type}' in the configuration. Please provide a non-empty string containing the custom message.");
 				}
+
 				$this->punishmentMessages[$type] = TextFormat::colorize($message);
 			}
 		}
@@ -168,6 +174,7 @@ class PlayerWarn extends PluginBase {
 		if (!is_bool($discordEnabled)) {
 			throw new \InvalidArgumentException('Invalid or missing "discord.enabled" value in the configuration. Please provide a boolean (true/false) value.');
 		}
+
 		$this->discordEnabled = $discordEnabled;
 
 		if ($this->discordEnabled) {
@@ -175,9 +182,11 @@ class PlayerWarn extends PluginBase {
 			if (!is_string($webhookUrl) || trim($webhookUrl) === '') {
 				throw new \InvalidArgumentException('Invalid or missing "discord.webhook_url" value in the configuration. Please provide a non-empty string containing the Discord webhook URL.');
 			}
+
 			if (filter_var($webhookUrl, FILTER_VALIDATE_URL) === false) {
 				throw new \InvalidArgumentException('Invalid URL for "discord.webhook_url" in the configuration. The provided value must be a valid URL.');
 			}
+
 			$this->webhookUrl = $webhookUrl;
 		}
 	}
@@ -302,6 +311,7 @@ class PlayerWarn extends PluginBase {
 				if (!$banList->isBanned($playerName)) {
 					$banList->addBan($playerName, $reason, null, $issuerName);
 				}
+
 				$player->kick($customPunishmentMessage);
 				break;
 			case 'ban-ip':
@@ -310,6 +320,7 @@ class PlayerWarn extends PluginBase {
 				if (!$ipBanList->isBanned($ip)) {
 					$ipBanList->addBan($ip, $reason, null, $issuerName);
 				}
+
 				$player->kick($customPunishmentMessage);
 				$server->getNetwork()->blockAddress($ip, -1);
 				break;
@@ -444,6 +455,7 @@ class PlayerWarn extends PluginBase {
 
 			$eventData['embeds'] = $embeds;
 		}
+
 		$mergedEventData = array_merge($defaultEventData, $eventData);
 
 		$this->sendWebhookRequest($mergedEventData);
@@ -486,6 +498,7 @@ class PlayerWarn extends PluginBase {
 
 			$eventData['embeds'] = $embeds;
 		}
+
 		$mergedEventData = array_merge($defaultEventData, $eventData);
 
 		$this->sendWebhookRequest($mergedEventData);
@@ -528,6 +541,7 @@ class PlayerWarn extends PluginBase {
 
 			$eventData['embeds'] = $embeds;
 		}
+
 		$mergedEventData = array_merge($defaultEventData, $eventData);
 
 		$this->sendWebhookRequest($mergedEventData);
@@ -583,6 +597,7 @@ class PlayerWarn extends PluginBase {
 
 			$eventData['embeds'] = $embeds;
 		}
+
 		$mergedEventData = array_merge($defaultEventData, $eventData);
 
 		$this->sendWebhookRequest($mergedEventData);

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2023 AIPTU
+ * Copyright (c) 2023-2024 AIPTU
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -41,6 +41,7 @@ class DiscordWebhookTask extends AsyncTask {
 		if ($serializedHeaders === null) {
 			throw new \InvalidArgumentException('Headers cannot be serialized');
 		}
+
 		$this->headers = $serializedHeaders;
 
 		if ($closure !== null) {

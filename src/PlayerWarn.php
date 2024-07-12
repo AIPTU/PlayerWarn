@@ -20,10 +20,10 @@ use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\task\DelayedPunishmentTask;
 use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\task\UpdateNotifierTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use aiptu\playerwarn\warns\WarnList;
+use JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
@@ -104,7 +104,7 @@ class PlayerWarn extends PluginBase {
 		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), 20);
 
 		if ($this->updateNotifierEnabled) {
-			$this->getServer()->getAsyncPool()->submitTask(new UpdateNotifierTask($this->getName(), $this->getDescription()->getVersion()));
+			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
 		}
 	}
 

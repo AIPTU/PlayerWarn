@@ -4,8 +4,15 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "pocketmine/pocketmine-mp": "^5.15"
+        "ifera-mc/update-notifier": "dev-master",
+        "pocketmine/pocketmine-mp": "^5.0"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/ifera-mc/UpdateNotifier.git"
+        }
+    ],
     "autoload": {
         "classmap": ["src"]
     }

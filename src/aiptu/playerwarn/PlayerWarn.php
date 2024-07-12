@@ -23,7 +23,7 @@ use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use aiptu\playerwarn\warns\WarnList;
-use aiptu\playerwarn\libs\_249ca73024baecfd\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_bb600148e8ce8679\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;

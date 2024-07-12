@@ -16,6 +16,7 @@ namespace aiptu\playerwarn\task;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\PlayerWarn;
 use pocketmine\scheduler\Task;
+use function count;
 
 class ExpiredWarningsTask extends Task {
 	public function __construct(
@@ -28,12 +29,11 @@ class ExpiredWarningsTask extends Task {
 
 		foreach ($server->getOnlinePlayers() as $player) {
 			$playerName = $player->getName();
+			$playerWarns = $warns->getWarns($playerName);
 
-			if (!$player->isOnline()) {
+			if (count($playerWarns) === 0) {
 				continue;
 			}
-
-			$playerWarns = $warns->getWarns($playerName);
 
 			foreach ($playerWarns as $index => $warnEntry) {
 				if ($warnEntry->hasExpired()) {

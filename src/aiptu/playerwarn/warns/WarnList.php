@@ -16,6 +16,9 @@ namespace aiptu\playerwarn\warns;
 use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\utils\Config;
+use RuntimeException;
+use function array_filter;
+use function array_map;
 use function count;
 use function is_array;
 use function strtolower;
@@ -29,7 +32,6 @@ class WarnList {
 		private string $filePath
 	) {
 		$this->config = new Config($this->filePath, Config::JSON);
-
 		$this->loadWarns();
 	}
 
@@ -48,14 +50,16 @@ class WarnList {
 	 */
 	public function removeWarns(string $playerName) : void {
 		$playerName = strtolower($playerName);
-		if (isset($this->warns[$playerName])) {
-			foreach ($this->warns[$playerName] as $warnEntry) {
-				(new WarnRemoveEvent($warnEntry))->call();
-			}
-
-			unset($this->warns[$playerName]);
-			$this->saveWarns();
+		if (!isset($this->warns[$playerName])) {
+			return;
 		}
+
+		foreach ($this->warns[$playerName] as $warnEntry) {
+			(new WarnRemoveEvent($warnEntry))->call();
+		}
+
+		unset($this->warns[$playerName]);
+		$this->saveWarns();
 	}
 
 	/**
@@ -63,22 +67,22 @@ class WarnList {
 	 */
 	public function removeSpecificWarn(WarnEntry $warnEntry) : void {
 		$playerName = strtolower($warnEntry->getPlayerName());
-		if (isset($this->warns[$playerName])) {
-			$playerWarns = &$this->warns[$playerName];
-			foreach ($playerWarns as $index => $existingWarnEntry) {
-				if ($existingWarnEntry === $warnEntry) {
-					(new WarnRemoveEvent($warnEntry))->call();
-					unset($playerWarns[$index]);
-					break;
-				}
-			}
-
-			if (count($playerWarns) === 0) {
-				unset($this->warns[$playerName]);
-			}
-
-			$this->saveWarns();
+		if (!isset($this->warns[$playerName])) {
+			return;
 		}
+
+		$this->warns[$playerName] = array_filter(
+			$this->warns[$playerName],
+			fn ($existingWarnEntry) => $existingWarnEntry !== $warnEntry
+		);
+
+		(new WarnRemoveEvent($warnEntry))->call();
+
+		if (count($this->warns[$playerName]) === 0) {
+			unset($this->warns[$playerName]);
+		}
+
+		$this->saveWarns();
 	}
 
 	/**
@@ -112,25 +116,18 @@ class WarnList {
 		$warnsData = $this->config->get('warns', []);
 
 		if (!is_array($warnsData)) {
-			throw new \RuntimeException('Invalid data format for warns. Expected an array.');
+			throw new RuntimeException('Invalid data format for warns. Expected an array.');
 		}
 
 		foreach ($warnsData as $playerName => $playerWarns) {
 			if (!is_array($playerWarns)) {
-				throw new \RuntimeException("Invalid data format for warns of player {$playerName}. Expected an array.");
+				throw new RuntimeException("Invalid data format for warns of player {$playerName}. Expected an array.");
 			}
 
-			foreach ($playerWarns as $warnData) {
-				if (!is_array($warnData)) {
-					throw new \RuntimeException("Invalid data format for a warn entry of player {$playerName}. Expected an array.");
-				}
-
-				try {
-					$this->warns[$playerName][] = WarnEntry::fromArray($warnData);
-				} catch (\InvalidArgumentException $e) {
-					throw new \RuntimeException("Error while parsing warn entry of player {$playerName}: " . $e->getMessage());
-				}
-			}
+			$this->warns[$playerName] = array_map(
+				fn ($warnData) => WarnEntry::fromArray($warnData),
+				array_filter($playerWarns, 'is_array')
+			);
 		}
 
 		$this->removeExpiredWarns();
@@ -142,9 +139,10 @@ class WarnList {
 	private function saveWarns() : void {
 		$warnsData = [];
 		foreach ($this->warns as $playerName => $playerWarns) {
-			foreach ($playerWarns as $warnEntry) {
-				$warnsData[$playerName][] = $warnEntry->toArray();
-			}
+			$warnsData[$playerName] = array_map(
+				fn ($warnEntry) => $warnEntry->toArray(),
+				$playerWarns
+			);
 		}
 
 		$this->config->set('warns', $warnsData);
@@ -158,11 +156,10 @@ class WarnList {
 		$now = new \DateTimeImmutable();
 
 		foreach ($this->warns as $playerName => &$playerWarns) {
-			foreach ($playerWarns as $index => $warnEntry) {
-				if ($warnEntry->hasExpired($now)) {
-					unset($playerWarns[$index]);
-				}
-			}
+			$playerWarns = array_filter(
+				$playerWarns,
+				fn ($warnEntry) => !$warnEntry->hasExpired($now)
+			);
 
 			if (count($playerWarns) === 0) {
 				unset($this->warns[$playerName]);

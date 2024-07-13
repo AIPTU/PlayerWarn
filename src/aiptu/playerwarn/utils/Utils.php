@@ -13,9 +13,13 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\utils;
 
-use function array_pop;
+use DateInterval;
+use DateTimeImmutable;
+use InvalidArgumentException;
+use function array_slice;
 use function array_sum;
 use function count;
+use function end;
 use function implode;
 use function intdiv;
 use function preg_match;
@@ -30,32 +34,30 @@ class Utils {
 	 *
 	 * @param string $durationString the duration string to be parsed
 	 *
-	 * @return \DateTimeImmutable|null the parsed DateTimeImmutable object representing the duration, or null if the duration string is empty
+	 * @return DateTimeImmutable|null the parsed DateTimeImmutable object representing the duration, or null if the duration string is empty
 	 *
-	 * @throws \InvalidArgumentException when the duration string format is invalid
+	 * @throws InvalidArgumentException when the duration string format is invalid
 	 */
-	public static function parseDurationString(string $durationString) : ?\DateTimeImmutable {
+	public static function parseDurationString(string $durationString) : ?DateTimeImmutable {
 		$pattern = '/^(\d+d)?(\d+h)?(\d+m)?(\d+s)?$/';
 
 		if (preg_match($pattern, $durationString, $matches) !== 1) {
-			throw new \InvalidArgumentException('Invalid duration string format. The format should be a combination of digits followed by d (days), h (hours), m (minutes), and s (seconds). Example: 1d2h30m');
+			throw new InvalidArgumentException('Invalid duration string format. The format should be a combination of digits followed by d (days), h (hours), m (minutes), and s (seconds). Example: 1d2h30m');
 		}
 
 		$duration = [
-			'days' => (int) ($matches[1] ?? 0),
-			'hours' => (int) ($matches[2] ?? 0),
-			'minutes' => (int) ($matches[3] ?? 0),
-			'seconds' => (int) ($matches[4] ?? 0),
+			'days' => isset($matches[1]) ? (int) $matches[1] : 0,
+			'hours' => isset($matches[2]) ? (int) $matches[2] : 0,
+			'minutes' => isset($matches[3]) ? (int) $matches[3] : 0,
+			'seconds' => isset($matches[4]) ? (int) $matches[4] : 0,
 		];
 
-		$hasDuration = array_sum($duration) > 0;
-
-		if (!$hasDuration) {
+		if (array_sum($duration) === 0) {
 			return null;
 		}
 
-		$now = new \DateTimeImmutable();
-		$interval = new \DateInterval('P' . $duration['days'] . 'DT' . $duration['hours'] . 'H' . $duration['minutes'] . 'M' . $duration['seconds'] . 'S');
+		$now = new DateTimeImmutable();
+		$interval = new DateInterval('P' . $duration['days'] . 'DT' . $duration['hours'] . 'H' . $duration['minutes'] . 'M' . $duration['seconds'] . 'S');
 
 		return $now->add($interval);
 	}
@@ -83,36 +85,23 @@ class Utils {
 		foreach ($units as [$unit, $secondsPerUnit]) {
 			if ($duration >= $secondsPerUnit) {
 				$value = intdiv($duration, $secondsPerUnit);
-				$parts[] = $value . ' ' . $unit . ($value > 1 ? 's' : '');
+				$parts[] = "{$value} {$unit}" . ($value > 1 ? 's' : '');
 				$duration -= $value * $secondsPerUnit;
 			}
 		}
 
 		$count = count($parts);
 
-		if ($count === 0) {
-			return '0 seconds';
-		}
-
-		if ($count === 1) {
-			return $parts[0];
-		}
-
-		if ($count === 2) {
-			return implode(' and ', $parts);
-		}
-
-		$last = array_pop($parts);
-		return implode(', ', $parts) . ', and ' . $last;
+		return match ($count) {
+			0 => '0 seconds',
+			1 => $parts[0],
+			2 => implode(' and ', $parts),
+			default => implode(', ', array_slice($parts, 0, -1)) . ', and ' . end($parts),
+		};
 	}
 
 	/**
 	 * Replaces variables in a given string with their corresponding values from the provided associative array.
-	 *
-	 * The `replaceVars` method searches for placeholders in the input string and replaces them with the associated values
-	 * from the `$vars` array. The placeholders in the string should be enclosed in curly braces, like "{key}". Each placeholder
-	 * is replaced with the corresponding value for the provided key from the `$vars` array. If a key in the `$vars` array
-	 * does not exist in the input string, it will be left as-is in the output string.
 	 *
 	 * @param string $str  the input string containing placeholders to be replaced
 	 * @param array  $vars an associative array where keys represent the placeholder names, and values are the replacements
@@ -121,8 +110,7 @@ class Utils {
 	 */
 	public static function replaceVars(string $str, array $vars) : string {
 		foreach ($vars as $key => $value) {
-			$placeholder = '{' . $key . '}';
-			$str = str_replace($placeholder, (string) $value, $str);
+			$str = str_replace("{{$key}}", (string) $value, $str);
 		}
 
 		return $str;

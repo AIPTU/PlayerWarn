@@ -126,7 +126,7 @@ class WarnList {
 
 			$this->warns[$playerName] = array_map(
 				fn ($warnData) => WarnEntry::fromArray($warnData),
-				array_filter($playerWarns, 'is_array')
+				$playerWarns
 			);
 		}
 

@@ -72,8 +72,19 @@ class WarnCommand extends Command implements PluginOwned {
 
 	private function parseArguments(array $args, CommandSender $sender) : array {
 		$playerName = array_shift($args);
-		$reason = implode(' ', array_slice($args, 0, -1)); // Join all but the last argument as the reason
-		$expiration = count($args) > 0 ? $this->parseExpiration(array_pop($args), $sender) : null;
+		$expiration = null;
+
+		if (count($args) > 1) {
+			// Join all but the last argument as the reason
+			$reason = implode(' ', array_slice($args, 0, -1));
+			$durationString = array_pop($args);
+			$expiration = $this->parseExpiration($durationString, $sender);
+		} elseif (count($args) === 1) {
+			// Only one argument left, this is the reason
+			$reason = $args[0];
+		} else {
+			throw new InvalidCommandSyntaxException();
+		}
 
 		return [$playerName, $reason, $expiration];
 	}

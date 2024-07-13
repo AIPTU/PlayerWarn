@@ -125,8 +125,8 @@ class WarnList {
 			}
 
 			$this->warns[$playerName] = array_map(
-				fn ($warnData) => WarnEntry::fromArray($warnData),
-				array_filter($playerWarns, 'is_array')
+				fn ($warnData) => $this->createWarnEntry($warnData, $playerName),
+				$playerWarns
 			);
 		}
 
@@ -167,5 +167,16 @@ class WarnList {
 		}
 
 		$this->saveWarns();
+	}
+
+	/**
+	 * Creates a WarnEntry from an array, throwing an exception if the data is invalid.
+	 */
+	private function createWarnEntry(array $warnData, string $playerName) : WarnEntry {
+		try {
+			return WarnEntry::fromArray($warnData);
+		} catch (\InvalidArgumentException $e) {
+			throw new RuntimeException("Error while parsing warn entry of player {$playerName}: " . $e->getMessage());
+		}
 	}
 }

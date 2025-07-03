@@ -29,10 +29,11 @@ class WarnEntry {
 		private string $playerName,
 		private string $reason,
 		private string $source,
-		private ?\DateTimeImmutable $expiration = null
+		private ?\DateTimeImmutable $expiration = null,
+		?\DateTimeImmutable $timestamp = null
 	) {
 		$this->playerName = strtolower($playerName);
-		$this->timestamp = new \DateTimeImmutable();
+		$this->timestamp = $timestamp ?? new \DateTimeImmutable();
 	}
 
 	/**
@@ -41,7 +42,7 @@ class WarnEntry {
 	 * @throws \InvalidArgumentException if required fields are missing or the expiration date is in an invalid format
 	 */
 	public static function fromArray(array $data) : self {
-		$requiredFields = ['player', 'reason', 'source'];
+		$requiredFields = ['player', 'reason', 'source', 'timestamp'];
 
 		$missingFields = array_diff($requiredFields, array_keys($data));
 		if (count($missingFields) > 0) {
@@ -57,7 +58,9 @@ class WarnEntry {
 			$expiration = self::parseExpiration($data['expiration']);
 		}
 
-		return new self($playerName, $reason, $source, $expiration);
+		$timestamp = self::parseTimestamp($data['timestamp']);
+
+		return new self($playerName, $reason, $source, $expiration, $timestamp);
 	}
 
 	/**
@@ -69,6 +72,20 @@ class WarnEntry {
 		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
 		if ($dateTime === false) {
 			throw new \InvalidArgumentException('Invalid expiration date format: ' . $expirationString);
+		}
+
+		return $dateTime;
+	}
+
+	/**
+	 * Parses the timestamp from a string and returns a DateTimeImmutable object.
+	 *
+	 * @throws \InvalidArgumentException if the timestamp has an invalid format
+	 */
+	private static function parseTimestamp(string $timestampString) : \DateTimeImmutable {
+		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $timestampString);
+		if ($dateTime === false) {
+			throw new \InvalidArgumentException('Invalid timestamp format: ' . $timestampString);
 		}
 
 		return $dateTime;

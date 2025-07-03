@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2023-2024 AIPTU
+ * Copyright (c) 2023-2025 AIPTU
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -23,7 +23,7 @@ use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use aiptu\playerwarn\warns\WarnList;
-use aiptu\playerwarn\libs\_3678b8df46cf137f\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_ed986d2abdaee7cd\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2023-2024 AIPTU
+ * Copyright (c) 2023-2025 AIPTU
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -15,17 +15,11 @@ namespace aiptu\playerwarn\event;
 
 use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\event\Event;
-use pocketmine\player\Player;
 
-class WarnExpiredEvent extends Event {
+class WarnAddEvent extends Event {
 	public function __construct(
-		private Player $player,
 		private WarnEntry $warnEntry
 	) {}
-
-	public function getPlayer() : Player {
-		return $this->player;
-	}
 
 	public function getWarnEntry() : WarnEntry {
 		return $this->warnEntry;

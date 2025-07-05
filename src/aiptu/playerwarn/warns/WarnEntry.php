@@ -17,6 +17,7 @@ use function array_diff;
 use function array_keys;
 use function count;
 use function implode;
+use function is_string;
 use function strtolower;
 use function trim;
 
@@ -39,7 +40,7 @@ class WarnEntry {
 	/**
 	 * Create a new WarnEntry object from an array of data.
 	 *
-	 * @throws \InvalidArgumentException if required fields are missing or the expiration date is in an invalid format
+	 * @throws \InvalidArgumentException if required fields are missing, a field has an invalid type, or a date is in an invalid format
 	 */
 	public static function fromArray(array $data) : self {
 		$requiredFields = ['player', 'reason', 'source', 'timestamp'];
@@ -49,43 +50,63 @@ class WarnEntry {
 			throw new \InvalidArgumentException('Invalid data format for WarnEntry. Missing fields: ' . implode(', ', $missingFields));
 		}
 
-		$playerName = trim($data['player']);
-		$reason = trim($data['reason']);
-		$source = trim($data['source']);
-
-		$expiration = null;
-		if (isset($data['expiration']) && strtolower(trim($data['expiration'])) !== 'never') {
-			$expiration = self::parseExpiration($data['expiration']);
+		if (!is_string($data['player'])) {
+			throw new \InvalidArgumentException("Invalid 'player' field. Expected a string.");
 		}
 
-		$timestamp = self::parseTimestamp($data['timestamp']);
+		$playerName = trim($data['player']);
+		if ($playerName === '') {
+			throw new \InvalidArgumentException("'player' field cannot be empty.");
+		}
+
+		if (!is_string($data['reason'])) {
+			throw new \InvalidArgumentException("Invalid 'reason' field. Expected a string.");
+		}
+
+		$reason = trim($data['reason']);
+		if ($reason === '') {
+			throw new \InvalidArgumentException("'reason' field cannot be empty.");
+		}
+
+		if (!is_string($data['source'])) {
+			throw new \InvalidArgumentException("Invalid 'source' field. Expected a string.");
+		}
+
+		$source = trim($data['source']);
+		if ($source === '') {
+			throw new \InvalidArgumentException("'source' field cannot be empty.");
+		}
+
+		$expiration = null;
+		if (isset($data['expiration'])) {
+			if (!is_string($data['expiration'])) {
+				throw new \InvalidArgumentException("Invalid 'expiration' field. Expected a string or 'Never'.");
+			}
+
+			$expirationString = trim($data['expiration']);
+			if (strtolower($expirationString) !== 'never') {
+				$expiration = self::parseDateTime($expirationString, 'expiration date');
+			}
+		}
+
+		if (!is_string($data['timestamp'])) {
+			throw new \InvalidArgumentException("Invalid 'timestamp' field. Expected a string.");
+		}
+
+		$timestamp = self::parseDateTime($data['timestamp'], 'timestamp');
 
 		return new self($playerName, $reason, $source, $expiration, $timestamp);
 	}
 
 	/**
-	 * Parses the expiration date from a string and returns a DateTimeImmutable object.
+	 * Parses a date/time string into a DateTimeImmutable object.
 	 *
-	 * @throws \InvalidArgumentException if the expiration date has an invalid format
+	 * @throws \InvalidArgumentException if the date/time string has an invalid format
 	 */
-	private static function parseExpiration(string $expirationString) : \DateTimeImmutable {
-		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $expirationString);
+	private static function parseDateTime(string $dateTimeString, string $fieldName) : \DateTimeImmutable {
+		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $dateTimeString);
 		if ($dateTime === false) {
-			throw new \InvalidArgumentException('Invalid expiration date format: ' . $expirationString);
-		}
-
-		return $dateTime;
-	}
-
-	/**
-	 * Parses the timestamp from a string and returns a DateTimeImmutable object.
-	 *
-	 * @throws \InvalidArgumentException if the timestamp has an invalid format
-	 */
-	private static function parseTimestamp(string $timestampString) : \DateTimeImmutable {
-		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $timestampString);
-		if ($dateTime === false) {
-			throw new \InvalidArgumentException('Invalid timestamp format: ' . $timestampString);
+			throw new \InvalidArgumentException("Invalid {$fieldName} format: '{$dateTimeString}'. Expected format: '" . self::DATE_TIME_FORMAT . "'");
 		}
 
 		return $dateTime;

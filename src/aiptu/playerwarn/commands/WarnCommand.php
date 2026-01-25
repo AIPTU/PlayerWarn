@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -16,7 +16,6 @@ namespace aiptu\playerwarn\commands;
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
-use aiptu\playerwarn\warns\WarnList;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\command\utils\InvalidCommandSyntaxException;
@@ -63,14 +62,20 @@ class WarnCommand extends Command implements PluginOwned {
 			return false;
 		}
 
-		[$playerName, $reason, $expiration] = $this->parseArguments($args, $sender);
+		[$playerName, $reason, $expiration] = self::parseArguments($args, $sender);
+
+		$target = $server->getPlayerExact($playerName);
+		if ($target instanceof Player && $target->hasPermission('playerwarn.bypass')) {
+			$sender->sendMessage(TextFormat::RED . 'You cannot warn this player.');
+			return true;
+		}
 
 		$this->addWarning($playerName, $reason, $sender, $expiration);
 
 		return true;
 	}
 
-	private function parseArguments(array $args, CommandSender $sender) : array {
+	private static function parseArguments(array $args, CommandSender $sender) : array {
 		$playerName = array_shift($args);
 		$expiration = null;
 
@@ -78,7 +83,7 @@ class WarnCommand extends Command implements PluginOwned {
 			// Join all but the last argument as the reason
 			$reason = implode(' ', array_slice($args, 0, -1));
 			$durationString = array_pop($args);
-			$expiration = $this->parseExpiration($durationString, $sender);
+			$expiration = self::parseExpiration($durationString, $sender);
 		} elseif (count($args) === 1) {
 			// Only one argument left, this is the reason
 			$reason = $args[0];
@@ -89,7 +94,7 @@ class WarnCommand extends Command implements PluginOwned {
 		return [$playerName, $reason, $expiration];
 	}
 
-	private function parseExpiration(?string $durationString, CommandSender $sender) : ?\DateTimeImmutable {
+	private static function parseExpiration(?string $durationString, CommandSender $sender) : ?\DateTimeImmutable {
 		if ($durationString === null) {
 			return null;
 		}
@@ -103,14 +108,17 @@ class WarnCommand extends Command implements PluginOwned {
 	}
 
 	private function addWarning(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration) : void {
-		$warns = $this->plugin->getWarns();
-		$warnEntry = new WarnEntry($playerName, $reason, $sender->getName(), $expiration);
-		$warns->addWarn($warnEntry);
+		$this->plugin->getProvider()->addWarn($playerName, $reason, $sender->getName(), $expiration, function (WarnEntry $entry) use ($sender, $expiration) : void {
+			$this->sendMessageToPlayer($entry->getPlayerName(), $entry->getReason(), $sender, $expiration);
 
-		$this->sendMessageToPlayer($playerName, $reason, $sender, $expiration);
-		$this->sendMessageToSender($playerName, $reason, $sender, $expiration, $warns);
-
-		$this->applyPotentialPunishment($playerName, $reason, $sender, $warns);
+			// Use a separate callback for count to ensure we have the latest count including the one just added
+			$this->plugin->getProvider()->getWarningCount($entry->getPlayerName(), function (int $count) use ($entry, $sender, $expiration) : void {
+				self::sendMessageToSender($entry->getPlayerName(), $entry->getReason(), $sender, $expiration, $count);
+				$this->applyPotentialPunishment($entry->getPlayerName(), $entry->getReason(), $sender, $count);
+			});
+		}, function (\Throwable $error) use ($sender) : void {
+			$sender->sendMessage(TextFormat::RED . 'Failed to add warning: ' . $error->getMessage());
+		});
 	}
 
 	private function sendMessageToPlayer(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration) : void {
@@ -125,12 +133,11 @@ class WarnCommand extends Command implements PluginOwned {
 				TextFormat::YELLOW . 'The warning will ' . $expirationText,
 			];
 
-			$this->sendMultipleMessages($player, $message);
+			self::sendMultipleMessages($player, $message);
 		}
 	}
 
-	private function sendMessageToSender(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration, WarnList $warns) : void {
-		$newWarningCount = $warns->getWarningCount($playerName);
+	private static function sendMessageToSender(string $playerName, string $reason, CommandSender $sender, ?\DateTimeImmutable $expiration, int $warningCount) : void {
 		$expirationText = $expiration === null
 			? 'never expire'
 			: Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})";
@@ -140,29 +147,32 @@ class WarnCommand extends Command implements PluginOwned {
 			TextFormat::AQUA . 'The warning will ' . $expirationText,
 		];
 
-		if ($newWarningCount > 0) {
-			$message[] = TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $newWarningCount . TextFormat::AQUA . ' warnings.';
+		if ($warningCount > 0) {
+			$message[] = TextFormat::AQUA . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::AQUA . ' now has a total of ' . TextFormat::YELLOW . $warningCount . TextFormat::AQUA . ' warnings.';
 		}
 
-		$this->sendMultipleMessages($sender, $message);
+		self::sendMultipleMessages($sender, $message);
 	}
 
-	private function sendMultipleMessages(CommandSender $recipient, array $messages) : void {
+	private static function sendMultipleMessages(CommandSender $recipient, array $messages) : void {
 		foreach ($messages as $message) {
 			$recipient->sendMessage($message);
 		}
 	}
 
-	private function applyPotentialPunishment(string $playerName, string $reason, CommandSender $sender, WarnList $warns) : void {
+	private function applyPotentialPunishment(string $playerName, string $reason, CommandSender $sender, int $warningCount) : void {
 		$warningLimit = $this->plugin->getWarningLimit();
 		$punishmentType = $this->plugin->getPunishmentType();
 
-		$newWarningCount = $warns->getWarningCount($playerName);
+		// Check if player has bypass permission
+		$player = $this->plugin->getServer()->getPlayerExact($playerName);
+		if ($player instanceof Player && $player->hasPermission('playerwarn.bypass')) {
+			return;
+		}
 
-		if ($newWarningCount >= $warningLimit && $punishmentType !== 'none') {
+		if ($warningCount >= $warningLimit && $punishmentType !== 'none') {
 			$sender->sendMessage(TextFormat::RED . 'Player ' . TextFormat::YELLOW . $playerName . TextFormat::RED . ' has reached the warning limit and will be punished.');
 
-			$player = $this->plugin->getServer()->getPlayerExact($playerName);
 			if ($player instanceof Player) {
 				$this->plugin->scheduleDelayedPunishment($player, $punishmentType, $sender->getName(), $reason);
 			} else {

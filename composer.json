@@ -5,7 +5,18 @@
     "type": "project",
     "require": {
         "ifera-mc/update-notifier": "dev-master",
-        "pocketmine/pocketmine-mp": "^5.0"
+        "pocketmine/pocketmine-mp": "^5.0",
+        "sof3/libasynql": "dev-master"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.42",
+        "ergebnis/license": "^2.4",
+        "ergebnis/php-cs-fixer-config": "^6.26",
+        "friendsofphp/php-cs-fixer": "^3.54",
+        "kubawerlos/php-cs-fixer-custom-fixers": "^3.21",
+        "phpstan/extension-installer": "^1.3",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0"
     },
     "repositories": [
         {
@@ -14,6 +25,18 @@
         }
     ],
     "autoload": {
-        "classmap": ["src"]
+        "classmap": [
+            "src"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "analyze": "phpstan analyze src --memory-limit=2G",
+        "fix": "php-cs-fixer fix"
     }
 }

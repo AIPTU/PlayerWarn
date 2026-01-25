@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -17,16 +17,18 @@ use function array_diff;
 use function array_keys;
 use function count;
 use function implode;
+use function is_int;
 use function is_string;
 use function strtolower;
 use function trim;
 
 class WarnEntry {
-	public const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
+	public const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
 
 	private \DateTimeImmutable $timestamp;
 
 	public function __construct(
+		private int $id,
 		private string $playerName,
 		private string $reason,
 		private string $source,
@@ -43,7 +45,23 @@ class WarnEntry {
 	 * @throws \InvalidArgumentException if required fields are missing, a field has an invalid type, or a date is in an invalid format
 	 */
 	public static function fromArray(array $data) : self {
-		$requiredFields = ['player', 'reason', 'source', 'timestamp'];
+		$requiredFields = ['player', 'reason', 'source', 'timestamp']; // id might not be in required if we assume it's set manually later? No, fromArray usually implies complete object.
+		// Wait, fromArray is used when fetching from DB. existing code:
+		// $id = isset($data['id']) && is_int($data['id']) ? $data['id'] : null;
+		// If ID is non-nullable, it MUST be in data.
+
+		// If fromArray is used for migration (warnings.json doesn't have ID), we need to handle that.
+		// The migration code adds warn to provider. Provider usually inserts.
+		// If we make WarnEntry ID non-nullable, we cannot represent a migration entry as a WarnEntry before insert.
+		// So migration logic needs to pass raw data to addWarn, NOT a WarnEntry.
+
+		if (!isset($data['id']) || !is_int($data['id'])) {
+			// For migration or legacy, we might not have ID. But WarnEntry now requires it.
+			// If this method is ONLY for DB retrieval, we strictly require ID.
+			throw new \InvalidArgumentException("Invalid or missing 'id' field.");
+		}
+
+		$id = $data['id'];
 
 		$missingFields = array_diff($requiredFields, array_keys($data));
 		if (count($missingFields) > 0) {
@@ -79,13 +97,16 @@ class WarnEntry {
 
 		$expiration = null;
 		if (isset($data['expiration'])) {
+			// Handle DB storage where null might be passed as null or string "null" depending on driver, but here we expect data from array
 			if (!is_string($data['expiration'])) {
 				throw new \InvalidArgumentException("Invalid 'expiration' field. Expected a string or 'Never'.");
 			}
 
-			$expirationString = trim($data['expiration']);
-			if (strtolower($expirationString) !== 'never') {
-				$expiration = self::parseDateTime($expirationString, 'expiration date');
+			if (is_string($data['expiration'])) {
+				$expirationString = trim($data['expiration']);
+				if (strtolower($expirationString) !== 'never') {
+					$expiration = self::parseDateTime($expirationString, 'expiration date');
+				}
 			}
 		}
 
@@ -95,7 +116,7 @@ class WarnEntry {
 
 		$timestamp = self::parseDateTime($data['timestamp'], 'timestamp');
 
-		return new self($playerName, $reason, $source, $expiration, $timestamp);
+		return new self($id, $playerName, $reason, $source, $expiration, $timestamp);
 	}
 
 	/**
@@ -106,10 +127,22 @@ class WarnEntry {
 	private static function parseDateTime(string $dateTimeString, string $fieldName) : \DateTimeImmutable {
 		$dateTime = \DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $dateTimeString);
 		if ($dateTime === false) {
+			// Try standard SQL format if default fails (just in case)
+			$dateTime = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $dateTimeString);
+		}
+
+		if ($dateTime === false) {
 			throw new \InvalidArgumentException("Invalid {$fieldName} format: '{$dateTimeString}'. Expected format: '" . self::DATE_TIME_FORMAT . "'");
 		}
 
 		return $dateTime;
+	}
+
+	/**
+	 * Get the unique ID of the warning.
+	 */
+	public function getId() : ?int {
+		return $this->id;
 	}
 
 	/**
@@ -160,6 +193,7 @@ class WarnEntry {
 	 */
 	public function toArray() : array {
 		return [
+			'id' => $this->id,
 			'player' => $this->playerName,
 			'reason' => $this->reason,
 			'source' => $this->source,

@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -49,18 +49,16 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0];
-		$warns = $this->plugin->getWarns();
-		$hasWarnings = $warns->hasWarnings($playerName);
 
-		if (!$hasWarnings) {
-			$sender->sendMessage(TextFormat::YELLOW . "No warnings found for {$playerName}.");
-			return false;
-		}
-
-		$warningCount = $warns->getWarningCount($playerName);
-		$warns->removeWarns($playerName);
-
-		$sender->sendMessage(TextFormat::GREEN . "Cleared {$warningCount} warning(s) for {$playerName}.");
+		$this->plugin->getProvider()->removeWarns($playerName, function (int $count) use ($sender, $playerName) : void {
+			if ($count > 0) {
+				$sender->sendMessage(TextFormat::GREEN . "Cleared {$count} warning(s) for {$playerName}.");
+			} else {
+				$sender->sendMessage(TextFormat::YELLOW . "No warnings found for {$playerName}.");
+			}
+		}, function (\Throwable $error) use ($sender) : void {
+			$sender->sendMessage(TextFormat::RED . 'Failed to clear warnings: ' . $error->getMessage());
+		});
 
 		return true;
 	}

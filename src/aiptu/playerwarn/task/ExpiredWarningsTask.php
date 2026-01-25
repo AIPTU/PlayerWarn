@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -16,6 +16,7 @@ namespace aiptu\playerwarn\task;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\PlayerWarn;
 use pocketmine\scheduler\Task;
+use pocketmine\utils\TextFormat;
 use function count;
 
 class ExpiredWarningsTask extends Task {
@@ -24,25 +25,18 @@ class ExpiredWarningsTask extends Task {
 	) {}
 
 	public function onRun() : void {
-		$server = $this->plugin->getServer();
-		$warns = $this->plugin->getWarns();
-
-		foreach ($server->getOnlinePlayers() as $player) {
-			$playerName = $player->getName();
-			$playerWarns = $warns->getWarns($playerName);
-
-			if (count($playerWarns) === 0) {
-				continue;
-			}
-
-			foreach ($playerWarns as $index => $warnEntry) {
-				if ($warnEntry->hasExpired()) {
-					$event = new WarnExpiredEvent($player, $warnEntry);
-					$event->call();
-
-					$warns->removeSpecificWarn($warnEntry);
+		$this->plugin->getProvider()->getExpiredWarns(function (array $warns) : void {
+			foreach ($warns as $warnEntry) {
+				$player = $this->plugin->getServer()->getPlayerExact($warnEntry->getPlayerName());
+				if ($player !== null) {
+					$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
+					(new WarnExpiredEvent($player, $warnEntry))->call();
 				}
 			}
-		}
+
+			if (count($warns) > 0) {
+				$this->plugin->getProvider()->removeExpiredWarns();
+			}
+		});
 	}
 }

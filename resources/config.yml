@@ -22,7 +22,7 @@ warning:
   # The `{delay}` placeholder will be replaced with the actual delay time in seconds.
   # You can use color codes by using "§" or "&" before the color code.
   # Default value: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
-  message: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
+  message: "&cYou have reached the warning limit. You will be punished in {delay} seconds."
 
 # Punishment settings
 punishment:
@@ -35,19 +35,49 @@ punishment:
   # Default value is "none".
   type: none
 
+  # The `tempban` option specifies the duration of the temporary ban.
+  # This is only used if `type` is set to "ban" and you want it to be temporary (handled in command usually, but here for global setting if expanded).
+  # Actually, for PlayerWarn, tempban is usually a specific punishment type or handled via arguments.
+  # Let's add "tempban" as a valid type above.
+  # Valid options are "kick", "ban", "ban-ip", "tempban", and "none".
+
+  # Duration for "tempban" punishment type (e.g., "1 day", "12 hours", "30 minutes").
+  tempban_duration: "1 day"
+
+# Database settings
+database:
+  # The database type using libasynql.
+  # "sqlite" and "mysql" are supported.
+  type: sqlite
+
+  # For SQLite
+  sqlite:
+    file: "data.sqlite"
+
+  # For MySQL
+  mysql:
+    host: "127.0.0.1"
+    username: "root"
+    password: ""
+    schema: "your_schema"
+    port: 3306
+
+  # Worker settings (advanced)
+  worker-limit: 1
+
   # Custom punishment messages for each type of punishment.
   # These messages will be shown to the player when the punishment is applied.
   # You can use color codes by using "§" or "&" before the color code.
   # Note: Custom messages are only applicable when the `type` is not "none".
   messages:
     # Custom message for the "kick" punishment type.
-    kick: '&cYou have been kicked for reaching the warning limit.'
+    kick: "&cYou have been kicked for reaching the warning limit."
 
     # Custom message for the "ban" punishment type.
-    ban: '&cYou have been banned for reaching the warning limit.'
-    
+    ban: "&cYou have been banned for reaching the warning limit."
+
     # Custom message for the "ban-ip" punishment type.
-    ban-ip: '&cYour IP address has been banned for reaching the warning limit.'
+    ban-ip: "&cYour IP address has been banned for reaching the warning limit."
 
 # Discord integration settings
 discord:

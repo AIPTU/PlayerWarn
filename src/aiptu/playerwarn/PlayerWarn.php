@@ -405,7 +405,7 @@ class PlayerWarn extends PluginBase {
 
 				$banList = $server->getNameBans();
 				if (!$banList->isBanned($playerName)) {
-					$banList->addBan($playerName, $reason, \DateTimeImmutable::createFromImmutable($expiration), $issuerName);
+					$banList->addBan($playerName, $reason, \DateTime::createFromImmutable($expiration), $issuerName);
 				}
 
 				$player->kick($customPunishmentMessage);

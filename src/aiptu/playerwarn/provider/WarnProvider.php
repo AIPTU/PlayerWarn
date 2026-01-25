@@ -18,7 +18,7 @@ use aiptu\playerwarn\event\WarnRemoveEvent;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use pocketmine\utils\SingletonTrait;
-use aiptu\playerwarn\libs\_9130e908621b5e42\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_dd6def3ccc95ad48\poggit\libasynql\DataConnector;
 use function strtolower;
 
 class WarnProvider {

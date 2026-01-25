@@ -23,14 +23,14 @@ use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
-use aiptu\playerwarn\libs\_9130e908621b5e42\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_dd6def3ccc95ad48\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\InternetRequestResult;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_9130e908621b5e42\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_dd6def3ccc95ad48\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -405,7 +405,7 @@ class PlayerWarn extends PluginBase {
 
 				$banList = $server->getNameBans();
 				if (!$banList->isBanned($playerName)) {
-					$banList->addBan($playerName, $reason, \DateTimeImmutable::createFromImmutable($expiration), $issuerName);
+					$banList->addBan($playerName, $reason, \DateTime::createFromImmutable($expiration), $issuerName);
 				}
 
 				$player->kick($customPunishmentMessage);

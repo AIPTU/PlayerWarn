@@ -1,7 +1,7 @@
 # PlayerWarn Configuration
 
 # Do not change this (Only for internal use)!
-config-version: 1.0
+config-version: 2.0
 
 # Enable or disable the auto update checker notifier.
 update_notifier: true
@@ -46,23 +46,23 @@ punishment:
 
 # Database settings
 database:
-  # The database type using libasynql.
-  # "sqlite" and "mysql" are supported.
+  # The database type. "sqlite" and "mysql" are supported.
   type: sqlite
 
-  # For SQLite
+  # Edit these settings only if you choose "sqlite".
   sqlite:
-    file: "data.sqlite"
-
-  # For MySQL
+    # The file name of the database in the plugin data folder.
+    # You can also put an absolute path here.
+    file: data.sqlite
+  # Edit these settings only if you choose "mysql".
   mysql:
-    host: "127.0.0.1"
-    username: "root"
+    host: 127.0.0.1
+    # Avoid using the "root" user for security reasons.
+    username: root
     password: ""
-    schema: "your_schema"
-    port: 3306
-
-  # Worker settings (advanced)
+    schema: your_schema
+  # The maximum number of simultaneous SQL queries
+  # Recommended: 1 for sqlite, 2 for MySQL. You may want to further increase this value if your MySQL connection is very slow.
   worker-limit: 1
 
   # Custom punishment messages for each type of punishment.

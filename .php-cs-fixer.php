@@ -38,7 +38,6 @@ $ruleSet = Config\RuleSet\Php85::create()
         new Fixer\NoUselessDoctrineRepositoryCommentFixer(),
         new Fixer\NoUselessParenthesisFixer(),
         new Fixer\NoUselessStrlenFixer(),
-        new Fixer\NumericLiteralSeparatorFixer(),
         new Fixer\PhpdocNoIncorrectVarAnnotationFixer(),
         new Fixer\PhpdocNoSuperfluousParamFixer(),
         new Fixer\PhpdocParamTypeFixer(),
@@ -72,6 +71,7 @@ $ruleSet = Config\RuleSet\Php85::create()
                 'method' => 'one',
             ],
         ],
+        "date_time_immutable" => false,
         'error_suppression' => [
             'noise_remaining_usages' => false,
         ],

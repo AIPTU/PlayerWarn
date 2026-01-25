@@ -13,20 +13,25 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\task;
 
-use aiptu\playerwarn\PlayerWarn;
+use aiptu\playerwarn\punishment\PunishmentService;
+use aiptu\playerwarn\punishment\PunishmentType;
 use pocketmine\player\Player;
 use pocketmine\scheduler\Task;
 
 class DelayedPunishmentTask extends Task {
 	public function __construct(
-		private PlayerWarn $plugin,
+		private PunishmentService $service,
 		private Player $player,
-		private string $punishmentType,
+		private PunishmentType $type,
 		private string $issuerName,
 		private string $reason
 	) {}
 
 	public function onRun() : void {
-		$this->plugin->applyPunishment($this->player, $this->punishmentType, $this->issuerName, $this->reason);
+		if (!$this->player->isOnline() || $this->player->isClosed()) {
+			return;
+		}
+
+		$this->service->apply($this->player, $this->type, $this->issuerName, $this->reason);
 	}
 }

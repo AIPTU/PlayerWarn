@@ -25,18 +25,36 @@ class ExpiredWarningsTask extends Task {
 	) {}
 
 	public function onRun() : void {
-		$this->plugin->getProvider()->getExpiredWarns(function (array $warns) : void {
-			foreach ($warns as $warnEntry) {
-				$player = $this->plugin->getServer()->getPlayerExact($warnEntry->getPlayerName());
-				if ($player !== null) {
-					$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
-					(new WarnExpiredEvent($player, $warnEntry))->call();
+		$this->plugin->getProvider()->getExpiredWarns(
+			function (array $warns) : void {
+				if (count($warns) === 0) {
+					return;
 				}
-			}
 
-			if (count($warns) > 0) {
-				$this->plugin->getProvider()->removeExpiredWarns();
+				foreach ($warns as $warnEntry) {
+					$player = $this->plugin->getServer()->getPlayerExact($warnEntry->getPlayerName());
+					if ($player !== null && $player->isOnline()) {
+						$player->sendMessage(
+							TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason()
+						);
+						(new WarnExpiredEvent($player, $warnEntry))->call();
+					}
+				}
+
+				$this->plugin->getProvider()->removeExpiredWarns(
+					function (int $affectedRows) : void {
+						if ($affectedRows > 0) {
+							$this->plugin->getLogger()->info("Removed {$affectedRows} expired warning(s)");
+						}
+					},
+					function (\Throwable $error) : void {
+						$this->plugin->getLogger()->error('Failed to remove expired warnings: ' . $error->getMessage());
+					}
+				);
+			},
+			function (\Throwable $error) : void {
+				$this->plugin->getLogger()->error('Failed to fetch expired warnings: ' . $error->getMessage());
 			}
-		});
+		);
 	}
 }

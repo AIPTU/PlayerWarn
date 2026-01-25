@@ -30,77 +30,90 @@ class EventListener implements Listener {
 	 * @priority HIGH
 	 */
 	public function onPlayerJoin(PlayerJoinEvent $event) : void {
-		$plugin = $this->plugin;
 		$player = $event->getPlayer();
 		$playerName = $player->getName();
 
-		$plugin->getProvider()->getWarningCount($playerName, function (int $currentWarningCount) use ($plugin, $player, $playerName) : void {
-			if (!$player->isOnline()) {
-				return;
+		$this->plugin->getProvider()->getWarningCount(
+			$playerName,
+			function (int $currentWarningCount) use ($player, $playerName) : void {
+				if (!$player->isOnline()) {
+					return;
+				}
+
+				$tracker = $this->plugin->getWarningTracker();
+				$lastWarningCount = $tracker->getLastCount($playerName);
+
+				if ($currentWarningCount > $lastWarningCount) {
+					$newWarningCount = $currentWarningCount - $lastWarningCount;
+					$player->sendMessage(
+						TextFormat::YELLOW .
+						"You have received {$newWarningCount} new warning(s). Please take note of your behavior."
+					);
+				}
+
+				$tracker->setLastCount($playerName, $currentWarningCount);
+
+				if ($currentWarningCount > 0) {
+					$player->sendMessage(
+						TextFormat::RED .
+						"You have {$currentWarningCount} active warning(s). Please take note of your behavior."
+					);
+				} else {
+					$player->sendMessage(
+						TextFormat::GREEN .
+						'You have no active warnings. Keep up the good behavior!'
+					);
+				}
+			},
+			function (\Throwable $error) use ($playerName) : void {
+				$this->plugin->getLogger()->error(
+					"Failed to get warning count for {$playerName}: " . $error->getMessage()
+				);
+			}
+		);
+
+		$pendingManager = $this->plugin->getPendingPunishmentManager();
+		if ($pendingManager->hasPending($playerName)) {
+			$pendingPunishments = $pendingManager->getPending($playerName);
+
+			foreach ($pendingPunishments as $punishment) {
+				$this->plugin->getPunishmentService()->scheduleDelayedPunishment(
+					$player,
+					$punishment['type'],
+					$punishment['issuer'],
+					$punishment['reason']
+				);
 			}
 
-			$lastWarningCount = $plugin->getLastWarningCount($playerName);
-
-			if ($currentWarningCount > $lastWarningCount) {
-				$newWarningCount = $currentWarningCount - $lastWarningCount;
-				$player->sendMessage(TextFormat::YELLOW . "You have received {$newWarningCount} new warning(s). Please take note of your behavior.");
-			}
-
-			$plugin->setLastWarningCount($playerName, $currentWarningCount);
-
-			if ($currentWarningCount > 0) {
-				$player->sendMessage(TextFormat::RED . "You have {$currentWarningCount} active warning(s). Please take note of your behavior.");
-			} else {
-				$player->sendMessage(TextFormat::GREEN . 'You have no active warnings. Keep up the good behavior!');
-			}
-		});
-
-		if ($plugin->hasPendingPunishments($playerName)) {
-			$pendingPunishments = $plugin->getPendingPunishments($playerName);
-			foreach ($pendingPunishments as $pendingPunishment) {
-				$punishmentType = $pendingPunishment['punishmentType'];
-				$reason = $pendingPunishment['reason'];
-				$issuerName = $pendingPunishment['issuerName'];
-				$plugin->scheduleDelayedPunishment($player, $punishmentType, $issuerName, $reason);
-			}
-
-			$plugin->removePendingPunishments($playerName);
+			$pendingManager->clear($playerName);
 		}
 	}
 
 	public function onWarnAdd(WarnAddEvent $event) : void {
-		$plugin = $this->plugin;
-		$warnEntry = $event->getWarnEntry();
-
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendAddRequest($warnEntry);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendWarningAdded($event->getWarnEntry());
 		}
 	}
 
 	public function onWarnRemove(WarnRemoveEvent $event) : void {
-		$plugin = $this->plugin;
-		$warnEntry = $event->getWarnEntry();
-
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendRemoveRequest($warnEntry);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendWarningRemoved($event->getWarnEntry());
 		}
 	}
 
 	public function onWarnExpired(WarnExpiredEvent $event) : void {
-		$plugin = $this->plugin;
-		$player = $event->getPlayer();
-		$warnEntry = $event->getWarnEntry();
-
-		$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendExpiredRequest($warnEntry);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendWarningExpired($event->getWarnEntry());
 		}
 	}
 
 	public function onPlayerPunishment(PlayerPunishmentEvent $event) : void {
-		$plugin = $this->plugin;
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendPunishmentRequest($event);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendPunishment($event);
 		}
 	}
 }

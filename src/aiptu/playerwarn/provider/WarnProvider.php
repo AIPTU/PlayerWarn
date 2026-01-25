@@ -17,22 +17,31 @@ use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
-use pocketmine\utils\SingletonTrait;
+use DateTimeImmutable;
 use poggit\libasynql\DataConnector;
 use function strtolower;
 
 class WarnProvider {
-	use SingletonTrait;
-
 	public function __construct(
-		private DataConnector $database
+		private DataConnector $database,
+		private \AttachableLogger $logger
 	) {
-		self::setInstance($this);
 		$this->database->executeGeneric('table.init');
 	}
 
-	public function addWarn(string $playerName, string $reason, string $source, ?\DateTimeImmutable $expiration, ?Closure $onSuccess = null, ?Closure $onError = null) : void {
-		$timestamp = new \DateTimeImmutable();
+	/**
+	 * Adds a new warning to the database.
+	 */
+	public function addWarn(
+		string $playerName,
+		string $reason,
+		string $source,
+		?DateTimeImmutable $expiration,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
+		$timestamp = new DateTimeImmutable();
+
 		$this->database->executeInsert('warn.add', [
 			'player_name' => strtolower($playerName),
 			'reason' => $reason,
@@ -48,102 +57,168 @@ class WarnProvider {
 				$expiration,
 				$timestamp
 			);
+
 			(new WarnAddEvent($warnEntry))->call();
+
 			if ($onSuccess !== null) {
 				$onSuccess($warnEntry);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, 'Failed to add warning'));
 	}
 
-	public function removeWarns(string $playerName, ?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Removes all warnings for a player from the database.
+	 */
+	public function removeWarns(
+		string $playerName,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->getWarns($playerName, function (array $warns) use ($playerName, $onSuccess, $onError) : void {
 			$this->database->executeChange('warn.remove_player', [
-				'player_name' => $playerName,
+				'player_name' => strtolower($playerName),
 			], function (int $affectedRows) use ($warns, $onSuccess) : void {
-				foreach ($warns as $warnEntry) {
-					(new WarnRemoveEvent($warnEntry))->call();
+				if ($affectedRows > 0) {
+					foreach ($warns as $warnEntry) {
+						(new WarnRemoveEvent($warnEntry))->call();
+					}
 				}
 
 				if ($onSuccess !== null) {
 					$onSuccess($affectedRows);
 				}
-			}, $onError);
-		});
+			}, $this->wrapErrorHandler($onError, "Failed to remove warnings for {$playerName}"));
+		}, $this->wrapErrorHandler($onError, "Failed to fetch warnings for {$playerName}"));
 	}
 
-	public function removeWarnId(int $id, string $playerName, ?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Removes a specific warning by its ID.
+	 */
+	public function removeWarnById(
+		int $id,
+		string $playerName,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->database->executeChange('warn.remove_id', [
 			'id' => $id,
-			'player_name' => $playerName,
+			'player_name' => strtolower($playerName),
 		], function (int $affectedRows) use ($onSuccess) : void {
 			if ($onSuccess !== null) {
 				$onSuccess($affectedRows);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, "Failed to remove warning ID {$id}"));
 	}
 
-	public function getWarns(string $playerName, ?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Retrieves all warnings for a player.
+	 */
+	public function getWarns(
+		string $playerName,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->database->executeSelect('warn.get_all', [
-			'player_name' => $playerName,
+			'player_name' => strtolower($playerName),
 		], function (array $rows) use ($onSuccess) : void {
 			$warns = [];
+
 			foreach ($rows as $row) {
-				$warns[] = WarnEntry::fromArray([
-					'id' => $row['id'],
-					'player' => $row['player_name'],
-					'reason' => $row['reason'],
-					'source' => $row['source'],
-					'expiration' => $row['expiration'],
-					'timestamp' => $row['timestamp'],
-				]);
+				try {
+					$warns[] = WarnEntry::fromArray([
+						'id' => $row['id'],
+						'player' => $row['player_name'],
+						'reason' => $row['reason'],
+						'source' => $row['source'],
+						'expiration' => $row['expiration'],
+						'timestamp' => $row['timestamp'],
+					]);
+				} catch (\Throwable $e) {
+					$this->logger->error('Failed to parse warning from database: ' . $e->getMessage());
+				}
 			}
 
 			if ($onSuccess !== null) {
 				$onSuccess($warns);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, "Failed to fetch warnings for {$playerName}"));
 	}
 
-	public function getWarningCount(string $playerName, ?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Retrieves the count of warnings for a player.
+	 */
+	public function getWarningCount(
+		string $playerName,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->database->executeSelect('warn.count', [
-			'player_name' => $playerName,
+			'player_name' => strtolower($playerName),
 		], function (array $rows) use ($onSuccess) : void {
-			$count = $rows[0]['count'] ?? 0;
+			$count = (int) ($rows[0]['count'] ?? 0);
+
 			if ($onSuccess !== null) {
 				$onSuccess($count);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, "Failed to get warning count for {$playerName}"));
 	}
 
-	public function getExpiredWarns(?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Retrieves all expired warnings.
+	 */
+	public function getExpiredWarns(
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->database->executeSelect('warn.get_expired', [], function (array $rows) use ($onSuccess) : void {
 			$warns = [];
+
 			foreach ($rows as $row) {
-				$warns[] = WarnEntry::fromArray([
-					'id' => $row['id'],
-					'player' => $row['player_name'],
-					'reason' => $row['reason'],
-					'source' => $row['source'],
-					'expiration' => $row['expiration'],
-					'timestamp' => $row['timestamp'],
-				]);
+				try {
+					$warns[] = WarnEntry::fromArray([
+						'id' => $row['id'],
+						'player' => $row['player_name'],
+						'reason' => $row['reason'],
+						'source' => $row['source'],
+						'expiration' => $row['expiration'],
+						'timestamp' => $row['timestamp'],
+					]);
+				} catch (\Throwable $e) {
+					$this->logger->error('Failed to parse expired warning from database: ' . $e->getMessage());
+				}
 			}
 
 			if ($onSuccess !== null) {
 				$onSuccess($warns);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, 'Failed to fetch expired warnings'));
 	}
 
-	public function removeExpiredWarns(?Closure $onSuccess = null, ?Closure $onError = null) : void {
+	/**
+	 * Removes all expired warnings.
+	 */
+	public function removeExpiredWarns(
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
 		$this->database->executeChange('warn.delete_expired', [], function (int $affectedRows) use ($onSuccess) : void {
 			if ($onSuccess !== null) {
 				$onSuccess($affectedRows);
 			}
-		}, $onError);
+		}, $this->wrapErrorHandler($onError, 'Failed to remove expired warnings'));
 	}
 
 	public function close() : void {
 		$this->database->close();
+	}
+
+	private function wrapErrorHandler(?Closure $userHandler, string $context) : Closure {
+		return function (\Throwable $error) use ($userHandler, $context) : void {
+			$this->logger->error("{$context}: " . $error->getMessage());
+
+			if ($userHandler !== null) {
+				$userHandler($error);
+			}
+		};
 	}
 }

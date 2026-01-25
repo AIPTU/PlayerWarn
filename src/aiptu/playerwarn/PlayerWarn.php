@@ -14,58 +14,48 @@ declare(strict_types=1);
 namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\commands\ClearWarnsCommand;
+use aiptu\playerwarn\commands\DeleteWarnCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
-use aiptu\playerwarn\event\PlayerPunishmentEvent;
+use aiptu\playerwarn\discord\DiscordService;
 use aiptu\playerwarn\provider\WarnProvider;
-use aiptu\playerwarn\task\DelayedPunishmentTask;
-use aiptu\playerwarn\task\DiscordWebhookTask;
+use aiptu\playerwarn\punishment\PendingPunishmentManager;
+use aiptu\playerwarn\punishment\PunishmentService;
+use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\utils\Utils;
-use aiptu\playerwarn\warns\WarnEntry;
 use JackMD\UpdateNotifier\UpdateNotifier;
-use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
-use pocketmine\utils\InternetRequestResult;
 use pocketmine\utils\TextFormat;
 use poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use function array_keys;
-use function array_merge;
 use function file_exists;
-use function file_get_contents;
 use function filter_var;
-use function in_array;
 use function is_array;
 use function is_bool;
 use function is_int;
 use function is_string;
 use function json_decode;
-use function rename;
-use function strtolower;
-use function trim;
 use const FILTER_VALIDATE_URL;
 use const JSON_THROW_ON_ERROR;
 
 class PlayerWarn extends PluginBase {
 	private const float CONFIG_VERSION = 1.0;
+	private const int EXPIRATION_CHECK_INTERVAL = 6000; // 5 minutes
 
 	private WarnProvider $warnProvider;
+	private PunishmentService $punishmentService;
+	private ?DiscordService $discordService = null;
+	private PendingPunishmentManager $pendingPunishmentManager;
+	private WarningTracker $warningTracker;
+
 	private bool $updateNotifierEnabled;
 	private int $warningLimit;
-	private int $punishmentDelay;
-	private string $warningMessage;
-	private string $punishmentType;
-	private array $punishmentMessages = [];
-	private bool $discordEnabled;
-	private string $webhookUrl;
-	private array $pendingPunishments = [];
-	private array $lastWarningCounts = [];
-	private array $webhookData = [];
+	private PunishmentType $punishmentType;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -80,84 +70,31 @@ class PlayerWarn extends PluginBase {
 		}
 
 		$dbConfig = $this->getConfig()->get('database');
-		$connector = libasynql::create($this, $dbConfig, ['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']);
-		$this->warnProvider = new WarnProvider($connector);
+		$connector = libasynql::create(
+			$this,
+			$dbConfig,
+			['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']
+		);
 
+		$this->warnProvider = new WarnProvider($connector, $this->getLogger());
+
+		$this->initializeServices();
 		$this->checkMigration();
-
-		$eventTypes = ['add', 'remove', 'expire', 'punishment'];
-		try {
-			foreach ($eventTypes as $eventType) {
-				$jsonFile = Path::join($this->getDataFolder(), 'webhooks', "{$eventType}_event.json");
-				$this->webhookData[$eventType] = self::loadWebhookData($jsonFile, $eventType);
-			}
-		} catch (\InvalidArgumentException $e) {
-			$this->getLogger()->error('Failed to load webhook data: ' . $e->getMessage());
-			throw new DisablePluginException();
-		}
 
 		$commandMap = $this->getServer()->getCommandMap();
 		$commandMap->registerAll('PlayerWarn', [
 			new WarnCommand($this),
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),
-			new \aiptu\playerwarn\commands\DeleteWarnCommand($this),
+			new DeleteWarnCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
 
-		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), 20);
+		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), self::EXPIRATION_CHECK_INTERVAL);
 
 		if ($this->updateNotifierEnabled) {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
-		}
-	}
-
-	private function checkMigration() : void {
-		$oldWarningsFile = Path::join($this->getDataFolder(), 'warnings.json');
-		if (!file_exists($oldWarningsFile)) {
-			return;
-		}
-
-		$this->getLogger()->info('Migrating warnings from warnings.json to database...');
-		$jsonContent = file_get_contents($oldWarningsFile);
-		if ($jsonContent === false) {
-			$this->getLogger()->error('Failed to read warnings.json for migration.');
-			return;
-		}
-
-		$data = json_decode($jsonContent, true);
-
-		if (is_array($data) && isset($data['warns']) && is_array($data['warns'])) {
-			$count = 0;
-			foreach ($data['warns'] as $playerName => $warns) {
-				if (is_array($warns)) {
-					foreach ($warns as $warnData) {
-						if (!is_array($warnData)) {
-							continue;
-						}
-
-						try {
-							$warnData['player'] = $playerName; // Ensure player name is set from key if missing
-							// Migration: We need to recreate the warning in the DB.
-							// We cannot use WarnEntry::fromArray here if "id" is missing in json (legacy).
-							// Even if it was there, addWarn now expects scalars.
-							$reason = $warnData['reason'] ?? 'Unknown';
-							$source = $warnData['source'] ?? 'Console';
-							$expirationStr = $warnData['expiration'] ?? null;
-							$expiration = ($expirationStr !== null && strtolower($expirationStr) !== 'never') ? Utils::parseDurationString($expirationStr) : null;
-
-							$this->warnProvider->addWarn($playerName, $reason, $source, $expiration);
-							++$count;
-						} catch (\Throwable $e) {
-							$this->getLogger()->warning("Failed to migrate a warning for {$playerName}: " . $e->getMessage());
-						}
-					}
-				}
-			}
-
-			$this->getLogger()->info("Migrated {$count} warnings.");
-			rename($oldWarningsFile, $oldWarningsFile . '.migrated');
 		}
 	}
 
@@ -168,10 +105,7 @@ class PlayerWarn extends PluginBase {
 	}
 
 	/**
-	 * Loads and validates the plugin configuration from the `config.yml` file.
-	 * If the configuration is invalid, an exception will be thrown.
-	 *
-	 * @throws \InvalidArgumentException when the configuration is invalid
+	 * Loads and validates the plugin configuration.
 	 */
 	private function loadConfig() : void {
 		$this->checkConfig();
@@ -180,88 +114,44 @@ class PlayerWarn extends PluginBase {
 
 		$updateNotifierEnabled = $config->get('update_notifier');
 		if (!is_bool($updateNotifierEnabled)) {
-			throw new \InvalidArgumentException('Invalid or missing "update_notifier" value in the configuration. Please provide a boolean (true/false) value.');
+			throw new \InvalidArgumentException('Invalid "update_notifier" value. Expected boolean.');
 		}
 
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
 		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
-			throw new \InvalidArgumentException('Invalid or missing "warning.limit" value in the configuration. Please provide a positive integer value.');
+			throw new \InvalidArgumentException('Invalid "warning.limit" value. Expected positive integer.');
 		}
 
 		$this->warningLimit = $warningLimit;
 
-		$punishmentDelay = $config->getNested('warning.delay');
-		if (!is_int($punishmentDelay) || $punishmentDelay < 0) {
-			throw new \InvalidArgumentException('Invalid or missing "warning.delay" value in the configuration. Please provide a positive integer value.');
+		$punishmentTypeStr = $config->getNested('punishment.type', 'none');
+		if (!is_string($punishmentTypeStr)) {
+			throw new \InvalidArgumentException('Invalid "punishment.type" value. Expected string.');
 		}
 
-		$this->punishmentDelay = $punishmentDelay;
-
-		$warningMessage = $config->getNested('warning.message');
-		if (!is_string($warningMessage) || trim($warningMessage) === '') {
-			throw new \InvalidArgumentException('Invalid or missing "warning.message" in the configuration. Please provide a non-empty string value.');
-		}
-
-		$this->warningMessage = TextFormat::colorize($warningMessage);
-
-		$punishmentType = $config->getNested('punishment.type', 'none');
-		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip', 'tempban'], true)) {
-			throw new \InvalidArgumentException('Invalid "punishment.type" value in the configuration. Valid options are "none", "kick", "ban", "ban-ip", and "tempban".');
+		$punishmentType = PunishmentType::fromString($punishmentTypeStr);
+		if ($punishmentType === null) {
+			throw new \InvalidArgumentException(
+				'Invalid "punishment.type" value. Valid options: none, kick, ban, ban-ip, tempban'
+			);
 		}
 
 		$this->punishmentType = $punishmentType;
-
-		if ($this->punishmentType !== 'none') {
-			$messagesConfig = $config->getNested('punishment.messages', []);
-			if (!is_array($messagesConfig)) {
-				throw new \InvalidArgumentException('Invalid "punishment.messages" configuration. Please make sure it is properly defined as an array.');
-			}
-
-			// We only check basic types here; tempban and others might reuse "ban" message or have their own if added to config
-			foreach (['kick', 'ban', 'ban-ip'] as $type) {
-				if (isset($messagesConfig[$type])) {
-					$message = $messagesConfig[$type];
-					if (!is_string($message) || trim($message) === '') {
-						throw new \InvalidArgumentException("Invalid or missing punishment message for '{$type}' in the configuration. Please provide a non-empty string containing the custom message.");
-					}
-
-					$this->punishmentMessages[$type] = TextFormat::colorize($message);
-				}
-			}
-		}
-
-		$discordEnabled = $config->getNested('discord.enabled');
-		if (!is_bool($discordEnabled)) {
-			throw new \InvalidArgumentException('Invalid or missing "discord.enabled" value in the configuration. Please provide a boolean (true/false) value.');
-		}
-
-		$this->discordEnabled = $discordEnabled;
-
-		if ($this->discordEnabled) {
-			$webhookUrl = $config->getNested('discord.webhook_url');
-			if (!is_string($webhookUrl) || trim($webhookUrl) === '') {
-				throw new \InvalidArgumentException('Invalid or missing "discord.webhook_url" value in the configuration. Please provide a non-empty string containing the Discord webhook URL.');
-			}
-
-			if (filter_var($webhookUrl, FILTER_VALIDATE_URL) === false) {
-				throw new \InvalidArgumentException('Invalid URL for "discord.webhook_url" in the configuration. The provided value must be a valid URL.');
-			}
-
-			$this->webhookUrl = $webhookUrl;
-		}
 	}
 
 	/**
-	 * Checks and manages the configuration for the plugin.
-	 * Generates a new configuration if an outdated one is provided and backs up the old config.
+	 * Checks if the config is outdated and generates a new one if needed.
 	 */
 	private function checkConfig() : void {
 		$config = $this->getConfig();
 
-		if (!$config->exists('config-version') || $config->get('config-version', self::CONFIG_VERSION) !== self::CONFIG_VERSION) {
-			$this->getLogger()->warning('An outdated config was provided; attempting to generate a new one...');
+		if (
+			!$config->exists('config-version')
+			|| $config->get('config-version', self::CONFIG_VERSION) !== self::CONFIG_VERSION
+		) {
+			$this->getLogger()->warning('Outdated config detected. Generating new configuration...');
 
 			$oldConfigPath = Path::join($this->getDataFolder(), 'config.old.yml');
 			$newConfigPath = Path::join($this->getDataFolder(), 'config.yml');
@@ -270,7 +160,7 @@ class PlayerWarn extends PluginBase {
 			try {
 				$filesystem->rename($newConfigPath, $oldConfigPath);
 			} catch (IOException $e) {
-				$this->getLogger()->critical('An error occurred while attempting to generate the new config: ' . $e->getMessage());
+				$this->getLogger()->critical('Failed to backup old config: ' . $e->getMessage());
 				throw new DisablePluginException();
 			}
 
@@ -279,425 +169,134 @@ class PlayerWarn extends PluginBase {
 	}
 
 	/**
-	 * Loads webhook data from the given JSON file for the specified event type.
-	 *
-	 * @return array<string, mixed>
-	 *
-	 * @throws \InvalidArgumentException If unable to read or parse JSON data for the specified event type
+	 * Initializes various services used by the plugin.
 	 */
-	private static function loadWebhookData(string $jsonFile, string $eventType) : array {
-		try {
-			$jsonData = Files::fileGetContents($jsonFile);
-		} catch (\RuntimeException $e) {
-			throw new \InvalidArgumentException($e->getMessage());
+	private function initializeServices() : void {
+		$config = $this->getConfig();
+
+		$delaySeconds = $config->getNested('warning.delay', 5);
+		if (!is_int($delaySeconds) || $delaySeconds < 0) {
+			$delaySeconds = 5;
 		}
 
-		try {
-			$decodedData = json_decode($jsonData, true, flags: JSON_THROW_ON_ERROR);
-		} catch (\JsonException $e) {
-			throw new \InvalidArgumentException("Unable to parse JSON data from file '{$jsonFile}' for '{$eventType}' event. Reason: " . $e->getMessage());
+		$warningMessage = $config->getNested('warning.message', '&cYou have reached the warning limit.');
+		if (!is_string($warningMessage)) {
+			$warningMessage = '&cYou have reached the warning limit.';
 		}
 
-		if (!is_array($decodedData)) {
-			throw new \InvalidArgumentException("Decoded data from file '{$jsonFile}' for '{$eventType}' event is not an array.");
+		$punishmentMessages = [];
+		$messagesConfig = $config->getNested('punishment.messages', []);
+		if (is_array($messagesConfig)) {
+			foreach (['kick', 'ban', 'ban-ip', 'tempban'] as $type) {
+				if (isset($messagesConfig[$type]) && is_string($messagesConfig[$type])) {
+					$punishmentMessages[$type] = TextFormat::colorize($messagesConfig[$type]);
+				}
+			}
 		}
 
-		/** @var array<string, mixed> $decodedData */
-		return $decodedData;
+		$this->punishmentService = new PunishmentService(
+			$this,
+			$this->getServer(),
+			$this->getLogger(),
+			$delaySeconds,
+			TextFormat::colorize($warningMessage),
+			$punishmentMessages
+		);
+
+		$discordEnabled = $config->getNested('discord.enabled', false);
+		if (is_bool($discordEnabled) && $discordEnabled) {
+			$webhookUrl = $config->getNested('discord.webhook_url');
+
+			if (is_string($webhookUrl) && filter_var($webhookUrl, FILTER_VALIDATE_URL) !== false) {
+				$webhookTemplates = $this->loadWebhookTemplates();
+				$this->discordService = new DiscordService(
+					$this->getServer(),
+					$this->getLogger(),
+					$webhookUrl,
+					$webhookTemplates
+				);
+			} else {
+				$this->getLogger()->warning('Discord enabled but webhook URL is invalid. Disabling Discord integration.');
+			}
+		}
+
+		$this->pendingPunishmentManager = new PendingPunishmentManager();
+		$this->warningTracker = new WarningTracker();
 	}
 
 	/**
-	 * Get the WarnProvider instance.
+	 * @return array<string, array<string, mixed>>
 	 */
+	private function loadWebhookTemplates() : array {
+		/** @var array<string, array<string, mixed>> $templates */
+		$templates = [];
+		$eventTypes = ['add', 'remove', 'expire', 'punishment'];
+
+		foreach ($eventTypes as $eventType) {
+			$jsonFile = Path::join($this->getDataFolder(), 'webhooks', "{$eventType}_event.json");
+
+			try {
+				$jsonData = Files::fileGetContents($jsonFile);
+				$decoded = json_decode($jsonData, true, flags: JSON_THROW_ON_ERROR);
+
+				if (!is_array($decoded)) {
+					$this->getLogger()->warning("Webhook template '{$eventType}' is not an array. Using empty template.");
+					$templates[$eventType] = [];
+					continue;
+				}
+
+				$templates[$eventType] = $decoded;
+			} catch (\Throwable $e) {
+				$this->getLogger()->warning("Failed to load webhook template '{$eventType}': " . $e->getMessage());
+				$templates[$eventType] = [];
+			}
+		}
+
+		return $templates;
+	}
+
+	/**
+	 * Checks if the warnings.json file exists and migrates the data to the database if it does.
+	 */
+	private function checkMigration() : void {
+		$oldWarningsFile = Path::join($this->getDataFolder(), 'warnings.json');
+		if (!file_exists($oldWarningsFile)) {
+			return;
+		}
+
+		$migrationService = new MigrationService($this->warnProvider, $this->getLogger());
+		$migrationService->migrateFromJson($oldWarningsFile);
+	}
+
 	public function getProvider() : WarnProvider {
 		return $this->warnProvider;
 	}
 
-	/**
-	 * Returns the warning limit.
-	 */
+	public function getPunishmentService() : PunishmentService {
+		return $this->punishmentService;
+	}
+
+	public function getDiscordService() : ?DiscordService {
+		return $this->discordService;
+	}
+
+	public function getPendingPunishmentManager() : PendingPunishmentManager {
+		return $this->pendingPunishmentManager;
+	}
+
+	public function getWarningTracker() : WarningTracker {
+		return $this->warningTracker;
+	}
+
 	public function getWarningLimit() : int {
 		return $this->warningLimit;
 	}
 
-	/**
-	 * Returns the punishment type.
-	 */
-	public function getPunishmentType() : string {
+	public function getPunishmentType() : PunishmentType {
 		return $this->punishmentType;
 	}
 
-	/**
-	 * Check if Discord integration is enabled.
-	 */
 	public function isDiscordEnabled() : bool {
-		return $this->discordEnabled;
-	}
-
-	/**
-	 * Schedules a delayed punishment for the player and sends a warning message.
-	 */
-	public function scheduleDelayedPunishment(Player $player, string $punishmentType, string $issuerName, string $reason) : void {
-		$delay = $this->punishmentDelay;
-
-		if ($delay < 0) {
-			$this->applyPunishment($player, $punishmentType, $issuerName, $reason);
-			return;
-		}
-
-		$this->getScheduler()->scheduleDelayedTask(new DelayedPunishmentTask($this, $player, $punishmentType, $issuerName, $reason), $delay * 20);
-
-		$warningMessage = Utils::replaceVars($this->warningMessage, ['delay' => $delay]);
-		$player->sendMessage($warningMessage);
-	}
-
-	/**
-	 * Applies a punishment to the player based on the punishment type.
-	 */
-	public function applyPunishment(Player $player, string $punishmentType, string $issuerName, string $reason) : void {
-		$server = $player->getServer();
-		$playerName = $player->getName();
-
-		$event = new PlayerPunishmentEvent($player, $punishmentType, $issuerName, $reason);
-		$event->call();
-
-		if ($event->isCancelled()) {
-			return;
-		}
-
-		$customPunishmentMessage = $this->punishmentMessages[$punishmentType];
-
-		switch ($punishmentType) {
-			case 'kick':
-				$player->kick($customPunishmentMessage);
-				break;
-			case 'ban':
-				$banList = $server->getNameBans();
-				if (!$banList->isBanned($playerName)) {
-					$banList->addBan($playerName, $reason, null, $issuerName);
-				}
-
-				$player->kick($customPunishmentMessage);
-				break;
-			case 'ban-ip':
-				$ip = $player->getNetworkSession()->getIp();
-				$ipBanList = $server->getIPBans();
-				if (!$ipBanList->isBanned($ip)) {
-					$ipBanList->addBan($ip, $reason, null, $issuerName);
-				}
-
-				$player->kick($customPunishmentMessage);
-				$server->getNetwork()->blockAddress($ip, -1);
-				break;
-			case 'tempban':
-				$configValue = $this->getConfig()->get('punishment.tempban_duration', '1 day');
-				$durationString = is_string($configValue) ? $configValue : '1 day';
-				try {
-					$expiration = Utils::parseDurationString($durationString);
-				} catch (\InvalidArgumentException $e) {
-					$this->getLogger()->error("Invalid tempban duration '{$durationString}': " . $e->getMessage());
-					$expiration = (new \DateTimeImmutable())->modify('+1 day'); // Fallback
-				}
-
-				if ($expiration === null) {
-					$expiration = (new \DateTimeImmutable())->modify('+1 day');
-				}
-
-				$banList = $server->getNameBans();
-				if (!$banList->isBanned($playerName)) {
-					$banList->addBan($playerName, $reason, \DateTime::createFromImmutable($expiration), $issuerName);
-				}
-
-				$player->kick($customPunishmentMessage);
-				break;
-		}
-	}
-
-	/**
-	 * Adds a pending punishment for the player.
-	 */
-	public function addPendingPunishment(string $playerName, string $punishmentType, string $issuerName, string $reason) : void {
-		$pendingPunishment = [
-			'punishmentType' => $punishmentType,
-			'issuerName' => $issuerName,
-			'reason' => $reason,
-		];
-		$this->pendingPunishments[$playerName][] = $pendingPunishment;
-	}
-
-	/**
-	 * Checks if a player has pending punishments.
-	 */
-	public function hasPendingPunishments(string $playerName) : bool {
-		return isset($this->pendingPunishments[$playerName]);
-	}
-
-	/**
-	 * Returns the pending punishments for the player.
-	 */
-	public function getPendingPunishments(string $playerName) : array {
-		return $this->pendingPunishments[$playerName] ?? [];
-	}
-
-	/**
-	 * Removes the pending punishments for the player.
-	 */
-	public function removePendingPunishments(string $playerName) : void {
-		unset($this->pendingPunishments[$playerName]);
-	}
-
-	/**
-	 * Returns the last warning count for the player.
-	 */
-	public function getLastWarningCount(string $playerName) : int {
-		return $this->lastWarningCounts[$playerName] ?? 0;
-	}
-
-	/**
-	 * Sets the last warning count for the player.
-	 */
-	public function setLastWarningCount(string $playerName, int $warningCount) : void {
-		$this->lastWarningCounts[$playerName] = $warningCount;
-	}
-
-	/**
-	 * Sends a webhook request with the provided payload.
-	 */
-	public function sendWebhookRequest(array $payload) : void {
-		$webhookUrl = $this->webhookUrl;
-
-		$this->getServer()->getAsyncPool()->submitTask(new DiscordWebhookTask(
-			$webhookUrl,
-			$payload,
-			['Content-Type: application/json'],
-			function (?InternetRequestResult $result) : void {
-				if ($result === null) {
-					$this->getLogger()->warning('DiscordWebhookTask failed or returned null');
-					return;
-				}
-
-				$responseCode = $result->getCode();
-				if ($responseCode !== 204) {
-					$this->getLogger()->warning("DiscordWebhookTask failed with response code: {$responseCode}");
-					return;
-				}
-
-				$this->getLogger()->info('DiscordWebhookTask completed successfully');
-			}
-		));
-	}
-
-	/**
-	 * Sends a webhook request when adding a warning.
-	 */
-	public function sendAddRequest(WarnEntry $warnEntry) : void {
-		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
-		$defaultEventData = $this->webhookData['add'];
-
-		$playerName = $warnEntry->getPlayerName();
-		$timestamp = $warnEntry->getTimestamp()->format(WarnEntry::DATE_TIME_FORMAT);
-		$reason = $warnEntry->getReason();
-		$source = $warnEntry->getSource();
-		$expiration = $warnEntry->getExpiration();
-		$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
-
-		$eventData = [];
-
-		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
-			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
-				'player' => $playerName,
-				'source' => $source,
-				'reason' => $reason,
-				'timestamp' => $timestamp,
-				'expiration' => $expirationString,
-			]);
-		}
-
-		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
-			$embeds = $defaultEventData['embeds'];
-
-			foreach ($embeds as &$embed) {
-				if (isset($embed['description']) && is_string($embed['description'])) {
-					$embed['description'] = Utils::replaceVars($embed['description'], [
-						'player' => $playerName,
-						'source' => $source,
-						'reason' => $reason,
-						'timestamp' => $timestamp,
-						'expiration' => $expirationString,
-					]);
-				}
-
-				if (isset($embed['fields']) && is_array($embed['fields'])) {
-					foreach ($embed['fields'] as &$field) {
-						if (isset($field['value']) && is_string($field['value'])) {
-							$field['value'] = Utils::replaceVars($field['value'], [
-								'player' => $playerName,
-								'source' => $source,
-								'reason' => $reason,
-								'timestamp' => $timestamp,
-								'expiration' => $expirationString,
-							]);
-						}
-					}
-				}
-			}
-
-			$eventData['embeds'] = $embeds;
-		}
-
-		$mergedEventData = array_merge($defaultEventData, $eventData);
-
-		$this->sendWebhookRequest($mergedEventData);
-	}
-
-	/**
-	 * Sends a webhook request when clearing the warning.
-	 */
-	public function sendRemoveRequest(WarnEntry $warnEntry) : void {
-		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
-		$defaultEventData = $this->webhookData['remove'];
-
-		$playerName = $warnEntry->getPlayerName();
-
-		$eventData = [];
-
-		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
-			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
-				'player' => $playerName,
-			]);
-		}
-
-		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
-			$embeds = $defaultEventData['embeds'];
-
-			foreach ($embeds as &$embed) {
-				if (isset($embed['description']) && is_string($embed['description'])) {
-					$embed['description'] = Utils::replaceVars($embed['description'], [
-						'player' => $playerName,
-					]);
-				}
-
-				if (isset($embed['fields']) && is_array($embed['fields'])) {
-					foreach ($embed['fields'] as &$field) {
-						if (isset($field['value']) && is_string($field['value'])) {
-							$field['value'] = Utils::replaceVars($field['value'], [
-								'player' => $playerName,
-							]);
-						}
-					}
-				}
-			}
-
-			$eventData['embeds'] = $embeds;
-		}
-
-		$mergedEventData = array_merge($defaultEventData, $eventData);
-
-		$this->sendWebhookRequest($mergedEventData);
-	}
-
-	/**
-	 * Sends a webhook request when the warning expires.
-	 */
-	public function sendExpiredRequest(WarnEntry $warnEntry) : void {
-		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
-		$defaultEventData = $this->webhookData['expire'];
-
-		$playerName = $warnEntry->getPlayerName();
-
-		$eventData = [];
-
-		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
-			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
-				'player' => $playerName,
-			]);
-		}
-
-		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
-			$embeds = $defaultEventData['embeds'];
-
-			foreach ($embeds as &$embed) {
-				if (isset($embed['description']) && is_string($embed['description'])) {
-					$embed['description'] = Utils::replaceVars($embed['description'], [
-						'player' => $playerName,
-					]);
-				}
-
-				if (isset($embed['fields']) && is_array($embed['fields'])) {
-					foreach ($embed['fields'] as &$field) {
-						if (isset($field['value']) && is_string($field['value'])) {
-							$field['value'] = Utils::replaceVars($field['value'], [
-								'player' => $playerName,
-							]);
-						}
-					}
-				}
-			}
-
-			$eventData['embeds'] = $embeds;
-		}
-
-		$mergedEventData = array_merge($defaultEventData, $eventData);
-
-		$this->sendWebhookRequest($mergedEventData);
-	}
-
-	/**
-	 * Sends a webhook request for the PlayerPunishmentEvent.
-	 */
-	public function sendPunishmentRequest(PlayerPunishmentEvent $event) : void {
-		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
-		$defaultEventData = $this->webhookData['punishment'];
-
-		$player = $event->getPlayer();
-		$playerName = $player->getName();
-		$punishmentType = $event->getPunishmentType();
-		$issuerName = $event->getIssuerName();
-		$reason = $event->getReason();
-
-		$eventData = [];
-
-		if (isset($defaultEventData['content']) && is_string($defaultEventData['content'])) {
-			$eventData['content'] = Utils::replaceVars($defaultEventData['content'], [
-				'player' => $playerName,
-				'punishmentType' => $punishmentType,
-				'issuerName' => $issuerName,
-				'reason' => $reason,
-			]);
-		}
-
-		if (isset($defaultEventData['embeds']) && is_array($defaultEventData['embeds'])) {
-			$embeds = $defaultEventData['embeds'];
-
-			foreach ($embeds as &$embed) {
-				if (isset($embed['description']) && is_string($embed['description'])) {
-					$embed['description'] = Utils::replaceVars($embed['description'], [
-						'player' => $playerName,
-						'punishmentType' => $punishmentType,
-						'issuerName' => $issuerName,
-						'reason' => $reason,
-					]);
-				}
-
-				if (isset($embed['fields']) && is_array($embed['fields'])) {
-					foreach ($embed['fields'] as &$field) {
-						if (isset($field['value']) && is_string($field['value'])) {
-							$field['value'] = Utils::replaceVars($field['value'], [
-								'player' => $playerName,
-								'punishmentType' => $punishmentType,
-								'issuerName' => $issuerName,
-								'reason' => $reason,
-							]);
-						}
-					}
-				}
-			}
-
-			$eventData['embeds'] = $embeds;
-		}
-
-		$mergedEventData = array_merge($defaultEventData, $eventData);
-
-		$this->sendWebhookRequest($mergedEventData);
+		return $this->discordService !== null;
 	}
 }

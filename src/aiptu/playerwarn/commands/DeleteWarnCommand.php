@@ -50,7 +50,6 @@ class DeleteWarnCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0];
-		// ID check
 		if (!is_numeric($args[1])) {
 			$sender->sendMessage(TextFormat::RED . 'Warning ID must be a number.');
 			return false;
@@ -58,14 +57,7 @@ class DeleteWarnCommand extends Command implements PluginOwned {
 
 		$id = (int) $args[1];
 
-		// Optional: Verify player has warning with that ID?
-		// WarnProvider->removeWarnId just deletes by ID.
-		// But for safety, we might want to ensure the ID belongs to the player?
-		// The SQL `DELETE FROM player_warnings WHERE id = :id` doesn't check player name unless we add `AND player_name = :mn`.
-		// WarnProvider's removeWarnId currently only takes ID.
-		// Let's rely on ID being unique. The player argument is mostly for confirmation/UX or if we enforce ownership.
-
-		$this->plugin->getProvider()->removeWarnId($id, $playerName, function (int $affectedRows) use ($sender, $playerName, $id) : void {
+		$this->plugin->getProvider()->removeWarnById($id, $playerName, function (int $affectedRows) use ($sender, $playerName, $id) : void {
 			if ($affectedRows > 0) {
 				$sender->sendMessage(TextFormat::GREEN . "Successfully deleted warning ID {$id} for player {$playerName}.");
 			} else {

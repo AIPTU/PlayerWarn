@@ -44,7 +44,7 @@ use const FILTER_VALIDATE_URL;
 use const JSON_THROW_ON_ERROR;
 
 class PlayerWarn extends PluginBase {
-	private const float CONFIG_VERSION = 1.0;
+	private const float CONFIG_VERSION = 2.0;
 	private const int EXPIRATION_CHECK_INTERVAL = 6000; // 5 minutes
 
 	private WarnProvider $warnProvider;
@@ -60,6 +60,13 @@ class PlayerWarn extends PluginBase {
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
 			$this->saveResource($resource);
+		}
+
+		try {
+			$this->checkConfig();
+		} catch (\Throwable $e) {
+			$this->getLogger()->error('An error occurred while checking the configuration: ' . $e->getMessage());
+			throw new DisablePluginException();
 		}
 
 		try {
@@ -105,11 +112,36 @@ class PlayerWarn extends PluginBase {
 	}
 
 	/**
+	 * Checks if the config is outdated and generates a new one if needed.
+	 */
+	private function checkConfig() : void {
+		$config = $this->getConfig();
+
+		$currentVersion = $config->get('config-version', 0.0);
+		
+		if (!$config->exists('config-version') || $currentVersion !== self::CONFIG_VERSION) {
+			$this->getLogger()->warning("Outdated config detected (version {$currentVersion}, expected " . self::CONFIG_VERSION . "). Generating new configuration...");
+
+			$oldConfigPath = Path::join($this->getDataFolder(), 'config.old.yml');
+			$newConfigPath = Path::join($this->getDataFolder(), 'config.yml');
+
+			$filesystem = new Filesystem();
+			try {
+				$filesystem->rename($newConfigPath, $oldConfigPath);
+			} catch (IOException $e) {
+				$this->getLogger()->critical('Failed to backup old config: ' . $e->getMessage());
+				throw new DisablePluginException();
+			}
+
+			$this->reloadConfig();
+			$this->getLogger()->info('New configuration generated. Old config backed up to config.old.yml');
+		}
+	}
+
+	/**
 	 * Loads and validates the plugin configuration.
 	 */
 	private function loadConfig() : void {
-		$this->checkConfig();
-
 		$config = $this->getConfig();
 
 		$updateNotifierEnabled = $config->get('update_notifier');
@@ -139,33 +171,6 @@ class PlayerWarn extends PluginBase {
 		}
 
 		$this->punishmentType = $punishmentType;
-	}
-
-	/**
-	 * Checks if the config is outdated and generates a new one if needed.
-	 */
-	private function checkConfig() : void {
-		$config = $this->getConfig();
-
-		if (
-			!$config->exists('config-version')
-			|| $config->get('config-version', self::CONFIG_VERSION) !== self::CONFIG_VERSION
-		) {
-			$this->getLogger()->warning('Outdated config detected. Generating new configuration...');
-
-			$oldConfigPath = Path::join($this->getDataFolder(), 'config.old.yml');
-			$newConfigPath = Path::join($this->getDataFolder(), 'config.yml');
-
-			$filesystem = new Filesystem();
-			try {
-				$filesystem->rename($newConfigPath, $oldConfigPath);
-			} catch (IOException $e) {
-				$this->getLogger()->critical('Failed to backup old config: ' . $e->getMessage());
-				throw new DisablePluginException();
-			}
-
-			$this->reloadConfig();
-		}
 	}
 
 	/**

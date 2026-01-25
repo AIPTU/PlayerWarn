@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -34,24 +34,26 @@ class EventListener implements Listener {
 		$player = $event->getPlayer();
 		$playerName = $player->getName();
 
-		$lastWarningCount = $plugin->getLastWarningCount($playerName);
-		$currentWarningCount = $plugin->getWarns()->getWarningCount($playerName);
+		$plugin->getProvider()->getWarningCount($playerName, function (int $currentWarningCount) use ($plugin, $player, $playerName) : void {
+			if (!$player->isOnline()) {
+				return;
+			}
 
-		if ($currentWarningCount > $lastWarningCount) {
-			$newWarningCount = $currentWarningCount - $lastWarningCount;
-			$player->sendMessage(TextFormat::YELLOW . "You have received {$newWarningCount} new warning(s). Please take note of your behavior.");
-		}
+			$lastWarningCount = $plugin->getLastWarningCount($playerName);
 
-		$plugin->setLastWarningCount($playerName, $currentWarningCount);
+			if ($currentWarningCount > $lastWarningCount) {
+				$newWarningCount = $currentWarningCount - $lastWarningCount;
+				$player->sendMessage(TextFormat::YELLOW . "You have received {$newWarningCount} new warning(s). Please take note of your behavior.");
+			}
 
-		$warns = $plugin->getWarns();
+			$plugin->setLastWarningCount($playerName, $currentWarningCount);
 
-		if ($warns->hasWarnings($playerName)) {
-			$warningCount = $warns->getWarningCount($playerName);
-			$player->sendMessage(TextFormat::RED . "You have {$warningCount} active warning(s). Please take note of your behavior.");
-		} else {
-			$player->sendMessage(TextFormat::GREEN . 'You have no active warnings. Keep up the good behavior!');
-		}
+			if ($currentWarningCount > 0) {
+				$player->sendMessage(TextFormat::RED . "You have {$currentWarningCount} active warning(s). Please take note of your behavior.");
+			} else {
+				$player->sendMessage(TextFormat::GREEN . 'You have no active warnings. Keep up the good behavior!');
+			}
+		});
 
 		if ($plugin->hasPendingPunishments($playerName)) {
 			$pendingPunishments = $plugin->getPendingPunishments($playerName);

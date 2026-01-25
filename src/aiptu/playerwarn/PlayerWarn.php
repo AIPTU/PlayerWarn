@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -17,24 +17,27 @@ use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\event\PlayerPunishmentEvent;
+use aiptu\playerwarn\provider\WarnProvider;
 use aiptu\playerwarn\task\DelayedPunishmentTask;
 use aiptu\playerwarn\task\DiscordWebhookTask;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
-use aiptu\playerwarn\warns\WarnList;
-use aiptu\playerwarn\libs\_472e996530913792\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_9130e908621b5e42\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\player\Player;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\InternetRequestResult;
 use pocketmine\utils\TextFormat;
+use aiptu\playerwarn\libs\_9130e908621b5e42\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use function array_keys;
 use function array_merge;
+use function file_exists;
+use function file_get_contents;
 use function filter_var;
 use function in_array;
 use function is_array;
@@ -42,14 +45,16 @@ use function is_bool;
 use function is_int;
 use function is_string;
 use function json_decode;
+use function rename;
+use function strtolower;
 use function trim;
 use const FILTER_VALIDATE_URL;
 use const JSON_THROW_ON_ERROR;
 
 class PlayerWarn extends PluginBase {
-	private const CONFIG_VERSION = 1.0;
+	private const float CONFIG_VERSION = 1.0;
 
-	private WarnList $warnList;
+	private WarnProvider $warnProvider;
 	private bool $updateNotifierEnabled;
 	private int $warningLimit;
 	private int $punishmentDelay;
@@ -68,24 +73,23 @@ class PlayerWarn extends PluginBase {
 		}
 
 		try {
-			$this->warnList = new WarnList(Path::join($this->getDataFolder(), 'warnings.json'));
-		} catch (\Throwable $e) {
-			$this->getLogger()->error('An error occurred while loading the warn list: ' . $e->getMessage());
-			throw new DisablePluginException();
-		}
-
-		try {
 			$this->loadConfig();
 		} catch (\Throwable $e) {
 			$this->getLogger()->error('An error occurred while loading the configuration: ' . $e->getMessage());
 			throw new DisablePluginException();
 		}
 
+		$dbConfig = $this->getConfig()->get('database');
+		$connector = libasynql::create($this, $dbConfig, ['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']);
+		$this->warnProvider = new WarnProvider($connector);
+
+		$this->checkMigration();
+
 		$eventTypes = ['add', 'remove', 'expire', 'punishment'];
 		try {
 			foreach ($eventTypes as $eventType) {
 				$jsonFile = Path::join($this->getDataFolder(), 'webhooks', "{$eventType}_event.json");
-				$this->webhookData[$eventType] = $this->loadWebhookData($jsonFile, $eventType);
+				$this->webhookData[$eventType] = self::loadWebhookData($jsonFile, $eventType);
 			}
 		} catch (\InvalidArgumentException $e) {
 			$this->getLogger()->error('Failed to load webhook data: ' . $e->getMessage());
@@ -97,6 +101,7 @@ class PlayerWarn extends PluginBase {
 			new WarnCommand($this),
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),
+			new \aiptu\playerwarn\commands\DeleteWarnCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
@@ -105,6 +110,60 @@ class PlayerWarn extends PluginBase {
 
 		if ($this->updateNotifierEnabled) {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
+		}
+	}
+
+	private function checkMigration() : void {
+		$oldWarningsFile = Path::join($this->getDataFolder(), 'warnings.json');
+		if (!file_exists($oldWarningsFile)) {
+			return;
+		}
+
+		$this->getLogger()->info('Migrating warnings from warnings.json to database...');
+		$jsonContent = file_get_contents($oldWarningsFile);
+		if ($jsonContent === false) {
+			$this->getLogger()->error('Failed to read warnings.json for migration.');
+			return;
+		}
+
+		$data = json_decode($jsonContent, true);
+
+		if (is_array($data) && isset($data['warns']) && is_array($data['warns'])) {
+			$count = 0;
+			foreach ($data['warns'] as $playerName => $warns) {
+				if (is_array($warns)) {
+					foreach ($warns as $warnData) {
+						if (!is_array($warnData)) {
+							continue;
+						}
+
+						try {
+							$warnData['player'] = $playerName; // Ensure player name is set from key if missing
+							// Migration: We need to recreate the warning in the DB.
+							// We cannot use WarnEntry::fromArray here if "id" is missing in json (legacy).
+							// Even if it was there, addWarn now expects scalars.
+							$reason = $warnData['reason'] ?? 'Unknown';
+							$source = $warnData['source'] ?? 'Console';
+							$expirationStr = $warnData['expiration'] ?? null;
+							$expiration = ($expirationStr !== null && strtolower($expirationStr) !== 'never') ? Utils::parseDurationString($expirationStr) : null;
+
+							$this->warnProvider->addWarn($playerName, $reason, $source, $expiration);
+							++$count;
+						} catch (\Throwable $e) {
+							$this->getLogger()->warning("Failed to migrate a warning for {$playerName}: " . $e->getMessage());
+						}
+					}
+				}
+			}
+
+			$this->getLogger()->info("Migrated {$count} warnings.");
+			rename($oldWarningsFile, $oldWarningsFile . '.migrated');
+		}
+	}
+
+	public function onDisable() : void {
+		if (isset($this->warnProvider)) {
+			$this->warnProvider->close();
 		}
 	}
 
@@ -148,8 +207,8 @@ class PlayerWarn extends PluginBase {
 		$this->warningMessage = TextFormat::colorize($warningMessage);
 
 		$punishmentType = $config->getNested('punishment.type', 'none');
-		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip'], true)) {
-			throw new \InvalidArgumentException('Invalid "punishment.type" value in the configuration. Valid options are "none", "kick", "ban", and "ban-ip".');
+		if (!in_array($punishmentType, ['none', 'kick', 'ban', 'ban-ip', 'tempban'], true)) {
+			throw new \InvalidArgumentException('Invalid "punishment.type" value in the configuration. Valid options are "none", "kick", "ban", "ban-ip", and "tempban".');
 		}
 
 		$this->punishmentType = $punishmentType;
@@ -160,13 +219,16 @@ class PlayerWarn extends PluginBase {
 				throw new \InvalidArgumentException('Invalid "punishment.messages" configuration. Please make sure it is properly defined as an array.');
 			}
 
+			// We only check basic types here; tempban and others might reuse "ban" message or have their own if added to config
 			foreach (['kick', 'ban', 'ban-ip'] as $type) {
-				$message = $messagesConfig[$type] ?? '';
-				if (!is_string($message) || trim($message) === '') {
-					throw new \InvalidArgumentException("Invalid or missing punishment message for '{$type}' in the configuration. Please provide a non-empty string containing the custom message.");
-				}
+				if (isset($messagesConfig[$type])) {
+					$message = $messagesConfig[$type];
+					if (!is_string($message) || trim($message) === '') {
+						throw new \InvalidArgumentException("Invalid or missing punishment message for '{$type}' in the configuration. Please provide a non-empty string containing the custom message.");
+					}
 
-				$this->punishmentMessages[$type] = TextFormat::colorize($message);
+					$this->punishmentMessages[$type] = TextFormat::colorize($message);
+				}
 			}
 		}
 
@@ -219,9 +281,11 @@ class PlayerWarn extends PluginBase {
 	/**
 	 * Loads webhook data from the given JSON file for the specified event type.
 	 *
+	 * @return array<string, mixed>
+	 *
 	 * @throws \InvalidArgumentException If unable to read or parse JSON data for the specified event type
 	 */
-	private function loadWebhookData(string $jsonFile, string $eventType) : array {
+	private static function loadWebhookData(string $jsonFile, string $eventType) : array {
 		try {
 			$jsonData = Files::fileGetContents($jsonFile);
 		} catch (\RuntimeException $e) {
@@ -238,14 +302,15 @@ class PlayerWarn extends PluginBase {
 			throw new \InvalidArgumentException("Decoded data from file '{$jsonFile}' for '{$eventType}' event is not an array.");
 		}
 
+		/** @var array<string, mixed> $decodedData */
 		return $decodedData;
 	}
 
 	/**
-	 * Get the WarnList object containing player warnings.
+	 * Get the WarnProvider instance.
 	 */
-	public function getWarns() : WarnList {
-		return $this->warnList;
+	public function getProvider() : WarnProvider {
+		return $this->warnProvider;
 	}
 
 	/**
@@ -323,6 +388,27 @@ class PlayerWarn extends PluginBase {
 
 				$player->kick($customPunishmentMessage);
 				$server->getNetwork()->blockAddress($ip, -1);
+				break;
+			case 'tempban':
+				$configValue = $this->getConfig()->get('punishment.tempban_duration', '1 day');
+				$durationString = is_string($configValue) ? $configValue : '1 day';
+				try {
+					$expiration = Utils::parseDurationString($durationString);
+				} catch (\InvalidArgumentException $e) {
+					$this->getLogger()->error("Invalid tempban duration '{$durationString}': " . $e->getMessage());
+					$expiration = (new \DateTimeImmutable())->modify('+1 day'); // Fallback
+				}
+
+				if ($expiration === null) {
+					$expiration = (new \DateTimeImmutable())->modify('+1 day');
+				}
+
+				$banList = $server->getNameBans();
+				if (!$banList->isBanned($playerName)) {
+					$banList->addBan($playerName, $reason, \DateTimeImmutable::createFromImmutable($expiration), $issuerName);
+				}
+
+				$player->kick($customPunishmentMessage);
 				break;
 		}
 	}
@@ -405,6 +491,7 @@ class PlayerWarn extends PluginBase {
 	 * Sends a webhook request when adding a warning.
 	 */
 	public function sendAddRequest(WarnEntry $warnEntry) : void {
+		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
 		$defaultEventData = $this->webhookData['add'];
 
 		$playerName = $warnEntry->getPlayerName();
@@ -442,13 +529,15 @@ class PlayerWarn extends PluginBase {
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
-						$field['value'] = Utils::replaceVars($field['value'], [
-							'player' => $playerName,
-							'source' => $source,
-							'reason' => $reason,
-							'timestamp' => $timestamp,
-							'expiration' => $expirationString,
-						]);
+						if (isset($field['value']) && is_string($field['value'])) {
+							$field['value'] = Utils::replaceVars($field['value'], [
+								'player' => $playerName,
+								'source' => $source,
+								'reason' => $reason,
+								'timestamp' => $timestamp,
+								'expiration' => $expirationString,
+							]);
+						}
 					}
 				}
 			}
@@ -465,6 +554,7 @@ class PlayerWarn extends PluginBase {
 	 * Sends a webhook request when clearing the warning.
 	 */
 	public function sendRemoveRequest(WarnEntry $warnEntry) : void {
+		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
 		$defaultEventData = $this->webhookData['remove'];
 
 		$playerName = $warnEntry->getPlayerName();
@@ -489,9 +579,11 @@ class PlayerWarn extends PluginBase {
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
-						$field['value'] = Utils::replaceVars($field['value'], [
-							'player' => $playerName,
-						]);
+						if (isset($field['value']) && is_string($field['value'])) {
+							$field['value'] = Utils::replaceVars($field['value'], [
+								'player' => $playerName,
+							]);
+						}
 					}
 				}
 			}
@@ -508,6 +600,7 @@ class PlayerWarn extends PluginBase {
 	 * Sends a webhook request when the warning expires.
 	 */
 	public function sendExpiredRequest(WarnEntry $warnEntry) : void {
+		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
 		$defaultEventData = $this->webhookData['expire'];
 
 		$playerName = $warnEntry->getPlayerName();
@@ -532,9 +625,11 @@ class PlayerWarn extends PluginBase {
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
-						$field['value'] = Utils::replaceVars($field['value'], [
-							'player' => $playerName,
-						]);
+						if (isset($field['value']) && is_string($field['value'])) {
+							$field['value'] = Utils::replaceVars($field['value'], [
+								'player' => $playerName,
+							]);
+						}
 					}
 				}
 			}
@@ -551,6 +646,7 @@ class PlayerWarn extends PluginBase {
 	 * Sends a webhook request for the PlayerPunishmentEvent.
 	 */
 	public function sendPunishmentRequest(PlayerPunishmentEvent $event) : void {
+		/** @var array{content?: string, embeds?: list<array{description?: string, fields?: list<array{value?: string}>}>} $defaultEventData */
 		$defaultEventData = $this->webhookData['punishment'];
 
 		$player = $event->getPlayer();
@@ -585,12 +681,14 @@ class PlayerWarn extends PluginBase {
 
 				if (isset($embed['fields']) && is_array($embed['fields'])) {
 					foreach ($embed['fields'] as &$field) {
-						$field['value'] = Utils::replaceVars($field['value'], [
-							'player' => $playerName,
-							'punishmentType' => $punishmentType,
-							'issuerName' => $issuerName,
-							'reason' => $reason,
-						]);
+						if (isset($field['value']) && is_string($field['value'])) {
+							$field['value'] = Utils::replaceVars($field['value'], [
+								'player' => $playerName,
+								'punishmentType' => $punishmentType,
+								'issuerName' => $issuerName,
+								'reason' => $reason,
+							]);
+						}
 					}
 				}
 			}

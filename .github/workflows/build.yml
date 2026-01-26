@@ -20,7 +20,7 @@ jobs:
         with:
           additional-assets: |
             icon.png
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: PlayerWarn.phar
           path: ${{steps.pharynx.outputs.output-phar}}

@@ -15,10 +15,11 @@ namespace aiptu\playerwarn\provider;
 
 use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
+use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
-use aiptu\playerwarn\libs\_9eefdb22f90a4840\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_b337071249577ee2\poggit\libasynql\DataConnector;
 use function strtolower;
 
 class WarnProvider {
@@ -46,8 +47,8 @@ class WarnProvider {
 			'player_name' => strtolower($playerName),
 			'reason' => $reason,
 			'source' => $source,
-			'expiration' => $expiration?->format(WarnEntry::DATE_TIME_FORMAT),
-			'timestamp' => $timestamp->format(WarnEntry::DATE_TIME_FORMAT),
+			'expiration' => $expiration?->format(Utils::DATE_TIME_FORMAT),
+			'timestamp' => $timestamp->format(Utils::DATE_TIME_FORMAT),
 		], function (int $insertId, int $affectedRows) use ($playerName, $reason, $source, $expiration, $timestamp, $onSuccess) : void {
 			$warnEntry = new WarnEntry(
 				$insertId,

@@ -39,7 +39,7 @@ class DiscordService {
 			'player' => $warnEntry->getPlayerName(),
 			'source' => $warnEntry->getSource(),
 			'reason' => $warnEntry->getReason(),
-			'timestamp' => $warnEntry->getTimestamp()->format(WarnEntry::DATE_TIME_FORMAT),
+			'timestamp' => $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT),
 			'expiration' => $expirationString,
 		]);
 
@@ -86,7 +86,7 @@ class DiscordService {
 
 		$secondsRemaining = $expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp();
 		$durationString = Utils::formatDuration($secondsRemaining);
-		$dateString = $expiration->format(WarnEntry::DATE_TIME_FORMAT);
+		$dateString = $expiration->format(Utils::DATE_TIME_FORMAT);
 
 		return "{$durationString} ({$dateString})";
 	}

@@ -23,12 +23,12 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_9eefdb22f90a4840\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_b337071249577ee2\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_9eefdb22f90a4840\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_b337071249577ee2\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -117,11 +117,11 @@ class PlayerWarn extends PluginBase {
 	private function checkConfig() : void {
 		$config = $this->getConfig();
 
-		$currentVersion = $config->get('config-version', 0.0);
-		
-		if (!$config->exists('config-version') || $currentVersion !== self::CONFIG_VERSION) {
-			$this->getLogger()->warning("Outdated config detected (version {$currentVersion}, expected " . self::CONFIG_VERSION . "). Generating new configuration...");
-
+		if (
+			!$config->exists('config_version')
+			|| $config->get('config_version') !== self::CONFIG_VERSION
+		) {
+			$this->getLogger()->warning('Outdated configuration detected. Generating a new config file...');
 			$oldConfigPath = Path::join($this->getDataFolder(), 'config.old.yml');
 			$newConfigPath = Path::join($this->getDataFolder(), 'config.yml');
 

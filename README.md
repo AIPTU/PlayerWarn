@@ -16,6 +16,7 @@ A PocketMine-MP plugin that allows server administrators to issue warnings to pl
 10. **Database Support**: Uses SQLite (default) or MySQL for warning storage with async operations.
 
 ## Default Config
+
 ``` yaml
 # PlayerWarn Configuration
 
@@ -110,8 +111,9 @@ discord:
   webhook_url: "YOUR_WEBHOOK_URL"
 ```
 
-# Discord Integration
-Use this awesome website to generate valid json with built-in preview: [Discohook](https://discohook.org/), also you can send webhooks to your server with it if you just wan't fancy embed in your channel without any automatization.
+## Discord Integration
+
+Use this awesome website to generate valid json with built-in preview: [Discohook](https://discohook.org/), also you can send webhooks to your server with it if you just want fancy embed in your channel without any automatization.
 
 - Webhook on Discord
   1. Go to **Server settings** -> **Webhooks** -> **Create Webhook**
@@ -120,19 +122,20 @@ Use this awesome website to generate valid json with built-in preview: [Discohoo
 
 - Enable Discord Integration
   1. Open the **config.yml** file.
-  2. Find the **discord** section and change **enabled** to **true**.
-  3. Paste the webhook URL under **webhook_url**.
+  1. Find the **discord** section and change **enabled** to **true**.
+  1. Paste the webhook URL under **webhook_url**.
 
 ## Commands
 
 | Command | Description | Permission | Default |
-|---------|-------------|------------|---------|
+| --------- | ------------- | ------------ | --------- |
 | `/warn <player> <reason> [duration]` | Issue a warning to a player | `playerwarn.command.warn` | OP |
 | `/warns [player]` | View warning history | `playerwarn.command.warns` | All |
 | `/clearwarns <player>` | Clear all warnings for a player | `playerwarn.command.clearwarns` | OP |
 | `/delwarn <player> <id>` | Delete a specific warning by ID | `playerwarn.command.delwarn` | OP |
 
 ### Examples
+
 ```bash
 /warn Steve griefing              # Permanent warning
 /warn Steve harassment 1d         # Warning expires in 1 day
@@ -159,6 +162,6 @@ Upgrading from JSON-based versions? The plugin automatically migrates your data 
 
 ## Additional Notes
 
-- If you find bugs or want to give suggestions, please visit [here](https://github.com/AIPTU/PlayerWarn/issues).
-- We accept all contributions! If you want to contribute, please make a pull request in [here](https://github.com/AIPTU/PlayerWarn/pulls).
+- If you find bugs or want to give suggestions, please visit the [issues page](https://github.com/AIPTU/PlayerWarn/issues).
+- We accept all contributions! If you want to contribute, please make a pull request on the [pull requests page](https://github.com/AIPTU/PlayerWarn/pulls).
 - Icons made from [www.flaticon.com](https://www.flaticon.com)

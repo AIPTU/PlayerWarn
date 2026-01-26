@@ -1,10 +1,11 @@
 {
-  "content": "A warning has been removed.",
+  "content": "✅ A warning has been removed.",
   "embeds": [
     {
-      "title": "Warning Removed",
-      "description": "Warning for player {player} has been removed.",
-      "color": 1630540
+      "title": "🟢 Warning Cleared",
+      "description": "**{player}**'s warning has been removed by a moderator.\n\n_The player has a clean slate._",
+      "color": 3066993,
+      "fields": []
     }
   ],
   "username": "PlayerWarn",

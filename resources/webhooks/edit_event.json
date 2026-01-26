@@ -1,0 +1,30 @@
+{
+  "content": "✏️ A warning has been edited.",
+  "embeds": [
+    {
+      "title": "🟡 Warning Modified",
+      "description": "**{player}**'s warning has been updated by a moderator.",
+      "color": 16776960,
+      "fields": [
+        {
+          "name": "📌 Modified Field",
+          "value": "{editType}",
+          "inline": true
+        },
+        {
+          "name": "🔄 Previous",
+          "value": "{oldValue}",
+          "inline": false
+        },
+        {
+          "name": "✨ Updated",
+          "value": "{newValue}",
+          "inline": false
+        }
+      ]
+    }
+  ],
+  "username": "PlayerWarn",
+  "avatar_url": "https://raw.githubusercontent.com/AIPTU/PlayerWarn/10d61a33d584494cb8a1de0dc2d1bd9bae45aff3/icon.png",
+  "attachments": []
+}

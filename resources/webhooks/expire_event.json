@@ -1,10 +1,11 @@
 {
-  "content": "A warning has expired.",
+  "content": "⏳ A warning has automatically expired.",
   "embeds": [
     {
-      "title": "Warning Expired",
-      "description": "Warning for player {player} has expired.",
-      "color": 14931737
+      "title": "⚪ Warning Expired",
+      "description": "**{player}**'s warning has automatically expired.\n\n_The player is forgiven._",
+      "color": 9807270,
+      "fields": []
     }
   ],
   "username": "PlayerWarn",

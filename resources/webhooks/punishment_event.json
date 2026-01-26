@@ -1,21 +1,25 @@
 {
-  "content": "Player {player} has been punished.",
+  "content": "🔨 A player has been punished.",
   "embeds": [
     {
-      "title": "Player Punishment",
-      "color": 16711680,
+      "title": "🔴 Player Punishment Executed",
+      "description": "**{player}** has been punished for violations.\n\n**Reason:** {reason}",
+      "color": 15746113,
       "fields": [
         {
-          "name": "Punishment Type",
-          "value": "{punishmentType}"
+          "name": "⚔️ Punishment Type",
+          "value": "{punishmentType}",
+          "inline": true
         },
         {
-          "name": "Issuer",
-          "value": "{issuerName}"
+          "name": "👤 Issued By",
+          "value": "{issuerName}",
+          "inline": true
         },
         {
-          "name": "Reason",
-          "value": "{reason}"
+          "name": "📝 Details",
+          "value": "{reason}",
+          "inline": false
         }
       ]
     }

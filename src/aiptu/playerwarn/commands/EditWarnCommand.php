@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\commands;
 
-use aiptu\playerwarn\event\WarnEditEvent;
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
 use DateTimeImmutable;

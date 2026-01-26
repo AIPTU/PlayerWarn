@@ -278,7 +278,7 @@ class WarnProvider {
 				'id' => $id,
 				'player_name' => $normalizedName,
 				'reason' => $newReason,
-			], function (int $affectedRows) use ($normalizedName, $id, $currentWarn, $newReason, $onSuccess) : void {
+			], function (int $affectedRows) use ($normalizedName, $currentWarn, $newReason, $onSuccess) : void {
 				if ($affectedRows > 0) {
 					$this->cache->invalidate("warn_count:{$normalizedName}");
 					$this->cache->invalidate("warn_list:{$normalizedName}");
@@ -333,7 +333,7 @@ class WarnProvider {
 				'id' => $id,
 				'player_name' => $normalizedName,
 				'expiration' => $newExpiration?->format(Utils::DATE_TIME_FORMAT),
-			], function (int $affectedRows) use ($normalizedName, $id, $currentWarn, $newExpiration, $onSuccess) : void {
+			], function (int $affectedRows) use ($normalizedName, $currentWarn, $newExpiration, $onSuccess) : void {
 				if ($affectedRows > 0) {
 					$this->cache->invalidate("warn_count:{$normalizedName}");
 					$this->cache->invalidate("warn_list:{$normalizedName}");

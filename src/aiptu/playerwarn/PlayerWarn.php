@@ -15,6 +15,7 @@ namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\DeleteWarnCommand;
+use aiptu\playerwarn\commands\EditWarnCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
@@ -23,12 +24,12 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_07b326749041a879\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_4410530efbf098bd\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_07b326749041a879\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_4410530efbf098bd\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -94,6 +95,7 @@ class PlayerWarn extends PluginBase {
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),
 			new DeleteWarnCommand($this),
+			new EditWarnCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);

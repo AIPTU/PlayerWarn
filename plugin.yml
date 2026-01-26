@@ -16,6 +16,9 @@ permissions:
   playerwarn.command.delwarn:
     description: Permission to use the /delwarn command
     default: op
+  playerwarn.command.editwarn:
+    description: Permission to use the /editwarn command
+    default: op
   playerwarn.bypass:
     description: Permission to bypass being warned
     default: op

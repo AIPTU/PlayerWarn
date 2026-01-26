@@ -31,6 +31,7 @@ punishment:
   # - "kick": Kicks the player from the server when the warning limit is reached.
   # - "ban": Bans the player from the server when the warning limit is reached.
   # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
+  # - "tempban": Temporarily bans the player from the server when the warning limit is reached.
   # - "none": No punishment will be applied when the warning limit is reached.
   # Default value is "none".
   type: none
@@ -53,7 +54,7 @@ database:
   sqlite:
     # The file name of the database in the plugin data folder.
     # You can also put an absolute path here.
-    file: data.sqlite
+    file: warnings.sqlite
   # Edit these settings only if you choose "mysql".
   mysql:
     host: 127.0.0.1

@@ -13,25 +13,30 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\provider;
 
+use aiptu\playerwarn\cache\QueryCache;
 use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
-use aiptu\playerwarn\libs\_07b326749041a879\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_4410530efbf098bd\poggit\libasynql\DataConnector;
 use function strtolower;
 
 class WarnProvider {
+	private QueryCache $cache;
+
 	public function __construct(
 		private DataConnector $database,
 		private \AttachableLogger $logger
 	) {
+		$this->cache = new QueryCache();
 		$this->database->executeGeneric('table.init');
 	}
 
 	/**
 	 * Adds a new warning to the database.
+	 * Invalidates warning count cache for the player.
 	 */
 	public function addWarn(
 		string $playerName,
@@ -41,18 +46,22 @@ class WarnProvider {
 		?Closure $onSuccess = null,
 		?Closure $onError = null
 	) : void {
+		$normalizedName = strtolower($playerName);
 		$timestamp = new DateTimeImmutable();
 
 		$this->database->executeInsert('warn.add', [
-			'player_name' => strtolower($playerName),
+			'player_name' => $normalizedName,
 			'reason' => $reason,
 			'source' => $source,
 			'expiration' => $expiration?->format(Utils::DATE_TIME_FORMAT),
 			'timestamp' => $timestamp->format(Utils::DATE_TIME_FORMAT),
-		], function (int $insertId, int $affectedRows) use ($playerName, $reason, $source, $expiration, $timestamp, $onSuccess) : void {
+		], function (int $insertId, int $affectedRows) use ($normalizedName, $reason, $source, $expiration, $timestamp, $onSuccess) : void {
+			$this->cache->invalidate("warn_count:{$normalizedName}");
+			$this->cache->invalidate("warn_list:{$normalizedName}");
+
 			$warnEntry = new WarnEntry(
 				$insertId,
-				strtolower($playerName),
+				$normalizedName,
 				$reason,
 				$source,
 				$expiration,
@@ -69,17 +78,23 @@ class WarnProvider {
 
 	/**
 	 * Removes all warnings for a player from the database.
+	 * Invalidates related caches.
 	 */
 	public function removeWarns(
 		string $playerName,
 		?Closure $onSuccess = null,
 		?Closure $onError = null
 	) : void {
-		$this->getWarns($playerName, function (array $warns) use ($playerName, $onSuccess, $onError) : void {
+		$normalizedName = strtolower($playerName);
+
+		$this->getWarns($playerName, function (array $warns) use ($normalizedName, $onSuccess, $onError) : void {
 			$this->database->executeChange('warn.remove_player', [
-				'player_name' => strtolower($playerName),
-			], function (int $affectedRows) use ($warns, $onSuccess) : void {
+				'player_name' => $normalizedName,
+			], function (int $affectedRows) use ($normalizedName, $warns, $onSuccess) : void {
 				if ($affectedRows > 0) {
+					$this->cache->invalidate("warn_count:{$normalizedName}");
+					$this->cache->invalidate("warn_list:{$normalizedName}");
+
 					foreach ($warns as $warnEntry) {
 						(new WarnRemoveEvent($warnEntry))->call();
 					}
@@ -88,12 +103,13 @@ class WarnProvider {
 				if ($onSuccess !== null) {
 					$onSuccess($affectedRows);
 				}
-			}, $this->wrapErrorHandler($onError, "Failed to remove warnings for {$playerName}"));
-		}, $this->wrapErrorHandler($onError, "Failed to fetch warnings for {$playerName}"));
+			}, $this->wrapErrorHandler($onError, "Failed to remove warnings for {$normalizedName}"));
+		}, $this->wrapErrorHandler($onError, "Failed to fetch warnings for {$normalizedName}"));
 	}
 
 	/**
 	 * Removes a specific warning by its ID.
+	 * Invalidates caches for the affected player.
 	 */
 	public function removeWarnById(
 		int $id,
@@ -101,10 +117,17 @@ class WarnProvider {
 		?Closure $onSuccess = null,
 		?Closure $onError = null
 	) : void {
+		$normalizedName = strtolower($playerName);
+
 		$this->database->executeChange('warn.remove_id', [
 			'id' => $id,
-			'player_name' => strtolower($playerName),
-		], function (int $affectedRows) use ($onSuccess) : void {
+			'player_name' => $normalizedName,
+		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
+			if ($affectedRows > 0) {
+				$this->cache->invalidate("warn_count:{$normalizedName}");
+				$this->cache->invalidate("warn_list:{$normalizedName}");
+			}
+
 			if ($onSuccess !== null) {
 				$onSuccess($affectedRows);
 			}
@@ -147,21 +170,36 @@ class WarnProvider {
 
 	/**
 	 * Retrieves the count of warnings for a player.
+	 * Uses cache to minimize database queries (5 minute TTL).
 	 */
 	public function getWarningCount(
 		string $playerName,
 		?Closure $onSuccess = null,
 		?Closure $onError = null
 	) : void {
+		$normalizedName = strtolower($playerName);
+		$cacheKey = "warn_count:{$normalizedName}";
+
+		$cachedCount = $this->cache->get($cacheKey);
+		if ($cachedCount !== null) {
+			if ($onSuccess !== null) {
+				$onSuccess($cachedCount);
+			}
+
+			return;
+		}
+
 		$this->database->executeSelect('warn.count', [
-			'player_name' => strtolower($playerName),
-		], function (array $rows) use ($onSuccess) : void {
+			'player_name' => $normalizedName,
+		], function (array $rows) use ($cacheKey, $onSuccess) : void {
 			$count = (int) ($rows[0]['count'] ?? 0);
+
+			$this->cache->set($cacheKey, $count, 300.0);
 
 			if ($onSuccess !== null) {
 				$onSuccess($count);
 			}
-		}, $this->wrapErrorHandler($onError, "Failed to get warning count for {$playerName}"));
+		}, $this->wrapErrorHandler($onError, "Failed to get warning count for {$normalizedName}"));
 	}
 
 	/**
@@ -197,19 +235,81 @@ class WarnProvider {
 
 	/**
 	 * Removes all expired warnings.
+	 * Clears affected player caches.
 	 */
 	public function removeExpiredWarns(
 		?Closure $onSuccess = null,
 		?Closure $onError = null
 	) : void {
 		$this->database->executeChange('warn.delete_expired', [], function (int $affectedRows) use ($onSuccess) : void {
+			if ($affectedRows > 0) {
+				$this->cache->invalidatePattern('/^warn_(count|list):/');
+			}
+
 			if ($onSuccess !== null) {
 				$onSuccess($affectedRows);
 			}
 		}, $this->wrapErrorHandler($onError, 'Failed to remove expired warnings'));
 	}
 
+	/**
+	 * Updates the reason for a specific warning.
+	 */
+	public function updateWarnReason(
+		int $id,
+		string $playerName,
+		string $newReason,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
+		$normalizedName = strtolower($playerName);
+
+		$this->database->executeChange('warn.update_reason', [
+			'id' => $id,
+			'player_name' => $normalizedName,
+			'reason' => $newReason,
+		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
+			if ($affectedRows > 0) {
+				$this->cache->invalidate("warn_count:{$normalizedName}");
+				$this->cache->invalidate("warn_list:{$normalizedName}");
+			}
+
+			if ($onSuccess !== null) {
+				$onSuccess($affectedRows);
+			}
+		}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+	}
+
+	/**
+	 * Updates the expiration date for a specific warning.
+	 */
+	public function updateWarnExpiration(
+		int $id,
+		string $playerName,
+		?DateTimeImmutable $newExpiration,
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
+		$normalizedName = strtolower($playerName);
+
+		$this->database->executeChange('warn.update_expiration', [
+			'id' => $id,
+			'player_name' => $normalizedName,
+			'expiration' => $newExpiration?->format(Utils::DATE_TIME_FORMAT),
+		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
+			if ($affectedRows > 0) {
+				$this->cache->invalidate("warn_count:{$normalizedName}");
+				$this->cache->invalidate("warn_list:{$normalizedName}");
+			}
+
+			if ($onSuccess !== null) {
+				$onSuccess($affectedRows);
+			}
+		}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+	}
+
 	public function close() : void {
+		$this->cache->clear();
 		$this->database->close();
 	}
 

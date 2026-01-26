@@ -46,4 +46,16 @@ SELECT * FROM player_warnings WHERE expiration IS NOT NULL AND expiration <= CUR
 -- #  { delete_expired
 DELETE FROM player_warnings WHERE expiration IS NOT NULL AND expiration <= CURRENT_TIMESTAMP;
 -- #  }
+-- #  { update_reason
+-- #    :id int
+-- #    :player_name string
+-- #    :reason string
+UPDATE player_warnings SET reason = :reason WHERE id = :id AND player_name = :player_name;
+-- #  }
+-- #  { update_expiration
+-- #    :id int
+-- #    :player_name string
+-- #    :expiration ?string
+UPDATE player_warnings SET expiration = :expiration WHERE id = :id AND player_name = :player_name;
+-- #  }
 -- #}

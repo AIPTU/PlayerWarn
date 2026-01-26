@@ -33,13 +33,25 @@ class EventListener implements Listener {
 		$player = $event->getPlayer();
 		$playerName = $player->getName();
 
+		$pendingManager = $this->plugin->getPendingPunishmentManager();
+		if ($pendingManager->hasPending($playerName)) {
+			$pendingPunishments = $pendingManager->getPending($playerName);
+
+			foreach ($pendingPunishments as $punishment) {
+				$this->plugin->getPunishmentService()->scheduleDelayedPunishment(
+					$player,
+					$punishment['type'],
+					$punishment['issuer'],
+					$punishment['reason']
+				);
+			}
+
+			$pendingManager->clear($playerName);
+		}
+
 		$this->plugin->getProvider()->getWarningCount(
 			$playerName,
 			function (int $currentWarningCount) use ($player, $playerName) : void {
-				if (!$player->isOnline()) {
-					return;
-				}
-
 				$tracker = $this->plugin->getWarningTracker();
 				$lastWarningCount = $tracker->getLastCount($playerName);
 
@@ -71,22 +83,6 @@ class EventListener implements Listener {
 				);
 			}
 		);
-
-		$pendingManager = $this->plugin->getPendingPunishmentManager();
-		if ($pendingManager->hasPending($playerName)) {
-			$pendingPunishments = $pendingManager->getPending($playerName);
-
-			foreach ($pendingPunishments as $punishment) {
-				$this->plugin->getPunishmentService()->scheduleDelayedPunishment(
-					$player,
-					$punishment['type'],
-					$punishment['issuer'],
-					$punishment['reason']
-				);
-			}
-
-			$pendingManager->clear($playerName);
-		}
 	}
 
 	public function onWarnAdd(WarnAddEvent $event) : void {

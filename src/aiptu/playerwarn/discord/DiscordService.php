@@ -23,15 +23,23 @@ use function is_array;
 use function is_string;
 
 class DiscordService {
+	/** @var array<string, mixed>|null Cached empty template */
+	private ?array $emptyTemplate = null;
+
 	public function __construct(
 		private Server $server,
 		private \AttachableLogger $logger,
 		private string $webhookUrl,
 		private array $webhookTemplates
-	) {}
+	) {
+		$this->emptyTemplate = [];
+	}
 
 	public function sendWarningAdded(WarnEntry $warnEntry) : void {
-		$template = $this->webhookTemplates['add'] ?? [];
+		$template = $this->webhookTemplates['add'] ?? $this->emptyTemplate;
+		if (!$template) {
+			return;
+		}
 
 		$expirationString = self::formatExpiration($warnEntry->getExpiration());
 
@@ -47,7 +55,10 @@ class DiscordService {
 	}
 
 	public function sendWarningRemoved(WarnEntry $warnEntry) : void {
-		$template = $this->webhookTemplates['remove'] ?? [];
+		$template = $this->webhookTemplates['remove'] ?? $this->emptyTemplate;
+		if (!$template) {
+			return;
+		}
 
 		$payload = $this->replaceTemplateVars($template, [
 			'player' => $warnEntry->getPlayerName(),
@@ -57,7 +68,10 @@ class DiscordService {
 	}
 
 	public function sendWarningExpired(WarnEntry $warnEntry) : void {
-		$template = $this->webhookTemplates['expire'] ?? [];
+		$template = $this->webhookTemplates['expire'] ?? $this->emptyTemplate;
+		if (!$template) {
+			return;
+		}
 
 		$payload = $this->replaceTemplateVars($template, [
 			'player' => $warnEntry->getPlayerName(),
@@ -67,7 +81,10 @@ class DiscordService {
 	}
 
 	public function sendPunishment(PlayerPunishmentEvent $event) : void {
-		$template = $this->webhookTemplates['punishment'] ?? [];
+		$template = $this->webhookTemplates['punishment'] ?? $this->emptyTemplate;
+		if (!$template) {
+			return;
+		}
 
 		$payload = $this->replaceTemplateVars($template, [
 			'player' => $event->getPlayer()->getName(),
@@ -119,13 +136,19 @@ class DiscordService {
 				}
 
 				$responseCode = $result->getCode();
-				if ($responseCode !== 204) {
-					$this->logger->warning("Discord webhook failed with response code: {$responseCode}");
-					$this->logger->debug('Response body: ' . $result->getBody());
+
+				if ($responseCode === 204 || $responseCode === 200) {
+					$this->logger->debug('Discord webhook sent successfully');
 					return;
 				}
 
-				$this->logger->debug('Discord webhook sent successfully');
+				if ($responseCode === 429 || ($responseCode >= 500 && $responseCode < 600)) {
+					$this->logger->info("Discord webhook temporary error (code {$responseCode}), will retry");
+					return;
+				}
+
+				$this->logger->warning("Discord webhook failed with response code: {$responseCode}");
+				$this->logger->debug('Response body: ' . $result->getBody());
 			}
 		));
 	}

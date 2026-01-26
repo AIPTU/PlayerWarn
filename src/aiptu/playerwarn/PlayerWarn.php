@@ -15,6 +15,7 @@ namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\DeleteWarnCommand;
+use aiptu\playerwarn\commands\EditWarnCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
@@ -94,6 +95,7 @@ class PlayerWarn extends PluginBase {
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),
 			new DeleteWarnCommand($this),
+			new EditWarnCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);

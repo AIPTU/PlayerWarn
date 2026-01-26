@@ -103,11 +103,14 @@ class PunishmentService {
 		$playerName = $player->getName();
 		$banList = $this->server->getNameBans();
 
-		if (!$banList->isBanned($playerName)) {
-			$expiry = $until !== null ? \DateTime::createFromImmutable($until) : null;
-			$banList->addBan($playerName, $reason, $expiry, $issuerName);
+		if ($banList->isBanned($playerName)) {
+			$this->logger->info("Player {$playerName} is already banned, skipping duplicate ban");
+			$player->kick($message);
+			return;
 		}
 
+		$expiry = $until !== null ? \DateTime::createFromImmutable($until) : null;
+		$banList->addBan($playerName, $reason, $expiry, $issuerName);
 		$player->kick($message);
 		$this->logger->info("Banned player: {$playerName}");
 	}
@@ -123,11 +126,14 @@ class PunishmentService {
 		$ip = $player->getNetworkSession()->getIp();
 		$ipBanList = $this->server->getIPBans();
 
-		if (!$ipBanList->isBanned($ip)) {
-			$expiry = $until !== null ? \DateTime::createFromImmutable($until) : null;
-			$ipBanList->addBan($ip, $reason, $expiry, $issuerName);
+		if ($ipBanList->isBanned($ip)) {
+			$this->logger->info("IP {$ip} is already banned for player {$playerName}, skipping duplicate ban");
+			$player->kick($message);
+			return;
 		}
 
+		$expiry = $until !== null ? \DateTime::createFromImmutable($until) : null;
+		$ipBanList->addBan($ip, $reason, $expiry, $issuerName);
 		$player->kick($message);
 		$this->server->getNetwork()->blockAddress($ip, -1);
 		$this->logger->info("IP banned player: {$playerName} (IP: {$ip})");
@@ -143,14 +149,17 @@ class PunishmentService {
 		$playerName = $player->getName();
 		$banList = $this->server->getNameBans();
 
-		// If no expiration provided, use a default
+		if ($banList->isBanned($playerName)) {
+			$this->logger->info("Player {$playerName} is already banned, skipping duplicate ban");
+			$player->kick($message);
+			return;
+		}
+
+		// Use provided expiration or default to 1 day
 		$expiration = $until ?? (new DateTimeImmutable())->modify('+1 day');
 		$expiry = \DateTime::createFromImmutable($expiration);
 
-		if (!$banList->isBanned($playerName)) {
-			$banList->addBan($playerName, $reason, $expiry, $issuerName);
-		}
-
+		$banList->addBan($playerName, $reason, $expiry, $issuerName);
 		$player->kick($message);
 		$this->logger->info("Temp banned player: {$playerName} until {$expiration->format('Y-m-d H:i:s')}");
 	}

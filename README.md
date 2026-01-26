@@ -51,6 +51,7 @@ punishment:
   # - "kick": Kicks the player from the server when the warning limit is reached.
   # - "ban": Bans the player from the server when the warning limit is reached.
   # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
+  # - "tempban": Temporarily bans the player from the server when the warning limit is reached.
   # - "none": No punishment will be applied when the warning limit is reached.
   # Default value is "none".
   type: none
@@ -73,7 +74,7 @@ database:
   sqlite:
     # The file name of the database in the plugin data folder.
     # You can also put an absolute path here.
-    file: data.sqlite
+    file: warnings.sqlite
   # Edit these settings only if you choose "mysql".
   mysql:
     host: 127.0.0.1
@@ -133,13 +134,16 @@ Use this awesome website to generate valid json with built-in preview: [Discohoo
 | `/warns [player]` | View warning history | `playerwarn.command.warns` | All |
 | `/clearwarns <player>` | Clear all warnings for a player | `playerwarn.command.clearwarns` | OP |
 | `/delwarn <player> <id>` | Delete a specific warning by ID | `playerwarn.command.delwarn` | OP |
+| `/editwarn <player> <id> <reason> [duration]` | Edit a specific warning by ID | `playerwarn.command.editwarn` | OP |
 
 ### Examples
 
 ```bash
 /warn Steve griefing              # Permanent warning
-/warn Steve harassment 1d         # Warning expires in 1 day
 /warn Steve spamming 2h30m        # Warning expires in 2 hours 30 minutes
+/editwarn Steve 1 reason hacking  # Edit warning 1's reason only
+/editwarn Steve 1 duration 2h30m  # Edit warning 1's duration only
+/delwarn Steve 1                  # Delete warning 1
 ```
 
 ## Permissions
@@ -148,6 +152,7 @@ Use this awesome website to generate valid json with built-in preview: [Discohoo
 - `playerwarn.command.warns` - Use the /warns command (default: true)
 - `playerwarn.command.clearwarns` - Use the /clearwarns command (default: op)
 - `playerwarn.command.delwarn` - Use the /delwarn command (default: op)
+- `playerwarn.command.editwarn` - Use the /editwarn command (default: op)
 - `playerwarn.bypass` - Cannot be warned (default: op)
 
 Grant these permissions to specific player groups or individuals using a permissions management plugin of your choice.

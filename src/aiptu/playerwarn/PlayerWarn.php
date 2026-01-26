@@ -57,6 +57,7 @@ class PlayerWarn extends PluginBase {
 	private bool $updateNotifierEnabled;
 	private int $warningLimit;
 	private PunishmentType $punishmentType;
+	private bool $broadcastToEveryone = true;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -173,6 +174,13 @@ class PlayerWarn extends PluginBase {
 		}
 
 		$this->punishmentType = $punishmentType;
+
+		$broadcastToEveryone = $config->getNested('warning.broadcast_to_everyone', true);
+		if (!is_bool($broadcastToEveryone)) {
+			throw new \InvalidArgumentException('Invalid "warning.broadcast_to_everyone" value. Expected boolean.');
+		}
+
+		$this->broadcastToEveryone = $broadcastToEveryone;
 	}
 
 	/**
@@ -305,5 +313,9 @@ class PlayerWarn extends PluginBase {
 
 	public function isDiscordEnabled() : bool {
 		return $this->discordService !== null;
+	}
+
+	public function isBroadcastToEveryoneEnabled() : bool {
+		return $this->broadcastToEveryone;
 	}
 }

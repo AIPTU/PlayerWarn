@@ -44,6 +44,12 @@ warning:
   # Default value: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
   message: "&cYou have reached the warning limit. You will be punished in {delay} seconds."
 
+  # The `broadcast_to_everyone` option enables or disables broadcasting warning events to all players on the server.
+  # Set to true to enable broadcasting, or false to disable it.
+  # When enabled, all players will be notified when a warning is issued.
+  # Default value: true
+  broadcast_to_everyone: true
+
 # Punishment settings
 punishment:
   # The `type` option specifies the type of punishment to apply when a player reaches the warning limit.

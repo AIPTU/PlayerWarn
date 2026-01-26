@@ -154,15 +154,22 @@ class WarnCommand extends Command implements PluginOwned {
 
 		$expirationText = self::formatExpiration($expiration);
 
-		$player->sendMessage(
-			TextFormat::YELLOW . 'You have been warned by ' .
+		$message = TextFormat::YELLOW . 'You have been warned by ' .
 			TextFormat::AQUA . $sender->getName() .
 			TextFormat::YELLOW . ' for: ' .
-			TextFormat::AQUA . $entry->getReason()
-		);
+			TextFormat::AQUA . $entry->getReason();
+
+		$player->sendMessage($message);
 		$player->sendMessage(
 			TextFormat::YELLOW . 'The warning will ' . $expirationText
 		);
+
+		if ($this->plugin->isBroadcastToEveryoneEnabled()) {
+			$this->plugin->getServer()->broadcastMessage(
+				TextFormat::LIGHT_PURPLE . $entry->getPlayerName() . TextFormat::YELLOW . ' has been warned for: ' .
+				TextFormat::LIGHT_PURPLE . $entry->getReason() . ' by ' . TextFormat::LIGHT_PURPLE . $sender->getName()
+			);
+		}
 	}
 
 	private static function sendMessageToSender(

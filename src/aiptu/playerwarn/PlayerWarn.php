@@ -24,12 +24,12 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_48f499e440827a20\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_05010bd808828429\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_48f499e440827a20\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_05010bd808828429\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -57,6 +57,7 @@ class PlayerWarn extends PluginBase {
 	private bool $updateNotifierEnabled;
 	private int $warningLimit;
 	private PunishmentType $punishmentType;
+	private bool $broadcastToEveryone = true;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -173,6 +174,13 @@ class PlayerWarn extends PluginBase {
 		}
 
 		$this->punishmentType = $punishmentType;
+
+		$broadcastToEveryone = $config->getNested('warning.broadcast_to_everyone', true);
+		if (!is_bool($broadcastToEveryone)) {
+			throw new \InvalidArgumentException('Invalid "warning.broadcast_to_everyone" value. Expected boolean.');
+		}
+
+		$this->broadcastToEveryone = $broadcastToEveryone;
 	}
 
 	/**
@@ -305,5 +313,9 @@ class PlayerWarn extends PluginBase {
 
 	public function isDiscordEnabled() : bool {
 		return $this->discordService !== null;
+	}
+
+	public function isBroadcastToEveryoneEnabled() : bool {
+		return $this->broadcastToEveryone;
 	}
 }

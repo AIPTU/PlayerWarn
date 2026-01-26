@@ -21,7 +21,7 @@ use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
-use aiptu\playerwarn\libs\_48f499e440827a20\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_05010bd808828429\poggit\libasynql\DataConnector;
 use function strtolower;
 
 class WarnProvider {

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace aiptu\playerwarn\warns;
 
+use aiptu\playerwarn\utils\Utils;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use function array_diff;
@@ -25,8 +26,6 @@ use function strtolower;
 use function trim;
 
 class WarnEntry {
-	public const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
-
 	private DateTimeImmutable $timestamp;
 
 	public function __construct(
@@ -97,7 +96,7 @@ class WarnEntry {
 
 			$expirationString = trim($data['expiration']);
 			if ($expirationString !== '' && strtolower($expirationString) !== 'never') {
-				$expiration = self::parseDateTime($expirationString, 'expiration date');
+				$expiration = Utils::parseDateTime($expirationString, 'expiration date');
 			}
 		}
 
@@ -105,7 +104,7 @@ class WarnEntry {
 			throw new InvalidArgumentException("Invalid 'timestamp' field. Expected a string.");
 		}
 
-		$timestamp = self::parseDateTime($data['timestamp'], 'timestamp');
+		$timestamp = Utils::parseDateTime($data['timestamp'], 'timestamp');
 
 		return new self(
 			$data['id'],
@@ -115,27 +114,6 @@ class WarnEntry {
 			$expiration,
 			$timestamp
 		);
-	}
-
-	/**
-	 * Parses a date/time string into a DateTimeImmutable object.
-	 *
-	 * @throws InvalidArgumentException if the date/time string has an invalid format
-	 */
-	private static function parseDateTime(string $dateTimeString, string $fieldName) : DateTimeImmutable {
-		$dateTime = DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $dateTimeString);
-
-		if ($dateTime === false) {
-			$dateTime = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $dateTimeString);
-		}
-
-		if ($dateTime === false) {
-			throw new InvalidArgumentException(
-				"Invalid {$fieldName} format: '{$dateTimeString}'. Expected format: '" . self::DATE_TIME_FORMAT . "'"
-			);
-		}
-
-		return $dateTime;
 	}
 
 	/**
@@ -206,8 +184,8 @@ class WarnEntry {
 			'player' => $this->playerName,
 			'reason' => $this->reason,
 			'source' => $this->source,
-			'timestamp' => $this->timestamp->format(self::DATE_TIME_FORMAT),
-			'expiration' => $this->expiration?->format(self::DATE_TIME_FORMAT) ?? 'Never',
+			'timestamp' => $this->timestamp->format(Utils::DATE_TIME_FORMAT),
+			'expiration' => $this->expiration?->format(Utils::DATE_TIME_FORMAT) ?? 'Never',
 		];
 	}
 }

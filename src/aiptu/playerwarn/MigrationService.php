@@ -15,11 +15,14 @@ namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\provider\WarnProvider;
 use aiptu\playerwarn\utils\Utils;
+use InvalidArgumentException;
 use function file_get_contents;
 use function is_array;
+use function is_string;
 use function json_decode;
 use function rename;
 use function strtolower;
+use function trim;
 use const JSON_THROW_ON_ERROR;
 
 class MigrationService {
@@ -86,14 +89,19 @@ class MigrationService {
 	private function migrateWarning(string $playerName, array $warnData) : void {
 		$reason = $warnData['reason'] ?? 'Unknown';
 		$source = $warnData['source'] ?? 'Console';
-		$expirationStr = $warnData['expiration'] ?? null;
-
 		$expiration = null;
-		if ($expirationStr !== null && strtolower($expirationStr) !== 'never') {
+		if (isset($warnData['expiration'])) {
 			try {
-				$expiration = Utils::parseDurationString($expirationStr);
-			} catch (\InvalidArgumentException $e) {
-				$this->logger->debug("Could not parse expiration '{$expirationStr}': " . $e->getMessage());
+				if (!is_string($warnData['expiration'])) {
+					throw new InvalidArgumentException("Invalid 'expiration' field. Expected a string or null.");
+				}
+
+				$expirationString = trim($warnData['expiration']);
+				if ($expirationString !== '' && strtolower($expirationString) !== 'never') {
+					$expiration = Utils::parseDateTime($expirationString, 'expiration date');
+				}
+			} catch (InvalidArgumentException $e) {
+				$this->logger->warning("Failed to parse 'expiration' field for {$playerName}: " . $e->getMessage());
 			}
 		}
 

@@ -15,7 +15,6 @@ namespace aiptu\playerwarn\commands;
 
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
-use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
@@ -57,11 +56,11 @@ class WarnsCommand extends Command implements PluginOwned {
 
 			$message = TextFormat::AQUA . "Warnings for {$playerName} (Count: {$warningCount}):";
 			foreach ($warns as $warnEntry) {
-				$timestamp = $warnEntry->getTimestamp()->format(WarnEntry::DATE_TIME_FORMAT);
+				$timestamp = $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT);
 				$reason = $warnEntry->getReason();
 				$source = $warnEntry->getSource();
 				$expiration = $warnEntry->getExpiration();
-				$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
+				$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(Utils::DATE_TIME_FORMAT)})" : 'Never';
 				$id = $warnEntry->getId() ?? 'N/A';
 
 				$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . "ID: {$id} " . TextFormat::YELLOW . '| Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";

@@ -117,11 +117,11 @@ class PlayerWarn extends PluginBase {
 	private function checkConfig() : void {
 		$config = $this->getConfig();
 
-		$currentVersion = $config->get('config-version', 0.0);
-		
-		if (!$config->exists('config-version') || $currentVersion !== self::CONFIG_VERSION) {
-			$this->getLogger()->warning("Outdated config detected (version {$currentVersion}, expected " . self::CONFIG_VERSION . "). Generating new configuration...");
-
+		if (
+			!$config->exists('config_version')
+			|| $config->get('config_version') !== self::CONFIG_VERSION
+		) {
+			$this->getLogger()->warning('Outdated configuration detected. Generating a new config file...');
 			$oldConfigPath = Path::join($this->getDataFolder(), 'config.old.yml');
 			$newConfigPath = Path::join($this->getDataFolder(), 'config.yml');
 

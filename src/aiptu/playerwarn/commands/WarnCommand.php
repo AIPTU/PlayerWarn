@@ -246,7 +246,7 @@ class WarnCommand extends Command implements PluginOwned {
 
 		$secondsRemaining = $expiration->getTimestamp() - (new DateTimeImmutable())->getTimestamp();
 		$duration = Utils::formatDuration($secondsRemaining);
-		$date = $expiration->format(WarnEntry::DATE_TIME_FORMAT);
+		$date = $expiration->format(Utils::DATE_TIME_FORMAT);
 
 		return "{$duration} ({$date})";
 	}

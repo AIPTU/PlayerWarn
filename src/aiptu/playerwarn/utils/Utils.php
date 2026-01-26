@@ -26,6 +26,25 @@ use function preg_match;
 use function str_replace;
 
 class Utils {
+	public const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
+
+	/**
+	 * Parses a date/time string into a DateTimeImmutable object.
+	 *
+	 * @throws InvalidArgumentException if the date/time string has an invalid format
+	 */
+	public static function parseDateTime(string $dateTimeString, string $fieldName) : DateTimeImmutable {
+		$dateTime = DateTimeImmutable::createFromFormat(self::DATE_TIME_FORMAT, $dateTimeString);
+
+		if ($dateTime === false) {
+			throw new InvalidArgumentException(
+				"Invalid {$fieldName} format: '{$dateTimeString}'. Expected format: '" . self::DATE_TIME_FORMAT . "'"
+			);
+		}
+
+		return $dateTime;
+	}
+
 	/**
 	 * Parses a duration string and returns a DateTimeImmutable object representing the duration.
 	 *

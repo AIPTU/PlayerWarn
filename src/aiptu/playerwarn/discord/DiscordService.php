@@ -80,6 +80,22 @@ class DiscordService {
 		$this->sendWebhook($payload);
 	}
 
+	public function sendWarningEdited(WarnEntry $warnEntry, string $editType, string $oldValue, string $newValue) : void {
+		$template = $this->webhookTemplates['edit'] ?? $this->emptyTemplate;
+		if (!$template) {
+			return;
+		}
+
+		$payload = $this->replaceTemplateVars($template, [
+			'player' => $warnEntry->getPlayerName(),
+			'editType' => $editType,
+			'oldValue' => $oldValue,
+			'newValue' => $newValue,
+		]);
+
+		$this->sendWebhook($payload);
+	}
+
 	public function sendPunishment(PlayerPunishmentEvent $event) : void {
 		$template = $this->webhookTemplates['punishment'] ?? $this->emptyTemplate;
 		if (!$template) {

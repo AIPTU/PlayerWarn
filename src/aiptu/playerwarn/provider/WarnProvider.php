@@ -15,6 +15,7 @@ namespace aiptu\playerwarn\provider;
 
 use aiptu\playerwarn\cache\QueryCache;
 use aiptu\playerwarn\event\WarnAddEvent;
+use aiptu\playerwarn\event\WarnEditEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
@@ -264,20 +265,47 @@ class WarnProvider {
 	) : void {
 		$normalizedName = strtolower($playerName);
 
-		$this->database->executeChange('warn.update_reason', [
-			'id' => $id,
-			'player_name' => $normalizedName,
-			'reason' => $newReason,
-		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
-			if ($affectedRows > 0) {
-				$this->cache->invalidate("warn_count:{$normalizedName}");
-				$this->cache->invalidate("warn_list:{$normalizedName}");
+		$this->getWarns($playerName, function (array $warns) use ($id, $normalizedName, $newReason, $onSuccess, $onError) : void {
+			$currentWarn = null;
+			foreach ($warns as $warn) {
+				if ($warn->getId() === $id) {
+					$currentWarn = $warn;
+					break;
+				}
 			}
 
-			if ($onSuccess !== null) {
-				$onSuccess($affectedRows);
-			}
-		}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+			$this->database->executeChange('warn.update_reason', [
+				'id' => $id,
+				'player_name' => $normalizedName,
+				'reason' => $newReason,
+			], function (int $affectedRows) use ($normalizedName, $id, $currentWarn, $newReason, $onSuccess) : void {
+				if ($affectedRows > 0) {
+					$this->cache->invalidate("warn_count:{$normalizedName}");
+					$this->cache->invalidate("warn_list:{$normalizedName}");
+
+					if ($currentWarn !== null) {
+						$newWarnEntry = new WarnEntry(
+							$currentWarn->getId(),
+							$currentWarn->getPlayerName(),
+							$newReason,
+							$currentWarn->getSource(),
+							$currentWarn->getExpiration(),
+							$currentWarn->getTimestamp()
+						);
+						(new WarnEditEvent(
+							$newWarnEntry,
+							'reason',
+							$currentWarn->getReason(),
+							$newReason
+						))->call();
+					}
+				}
+
+				if ($onSuccess !== null) {
+					$onSuccess($affectedRows);
+				}
+			}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+		}, $onError);
 	}
 
 	/**
@@ -292,20 +320,54 @@ class WarnProvider {
 	) : void {
 		$normalizedName = strtolower($playerName);
 
-		$this->database->executeChange('warn.update_expiration', [
-			'id' => $id,
-			'player_name' => $normalizedName,
-			'expiration' => $newExpiration?->format(Utils::DATE_TIME_FORMAT),
-		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
-			if ($affectedRows > 0) {
-				$this->cache->invalidate("warn_count:{$normalizedName}");
-				$this->cache->invalidate("warn_list:{$normalizedName}");
+		$this->getWarns($playerName, function (array $warns) use ($id, $normalizedName, $newExpiration, $onSuccess, $onError) : void {
+			$currentWarn = null;
+			foreach ($warns as $warn) {
+				if ($warn->getId() === $id) {
+					$currentWarn = $warn;
+					break;
+				}
 			}
 
-			if ($onSuccess !== null) {
-				$onSuccess($affectedRows);
-			}
-		}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+			$this->database->executeChange('warn.update_expiration', [
+				'id' => $id,
+				'player_name' => $normalizedName,
+				'expiration' => $newExpiration?->format(Utils::DATE_TIME_FORMAT),
+			], function (int $affectedRows) use ($normalizedName, $id, $currentWarn, $newExpiration, $onSuccess) : void {
+				if ($affectedRows > 0) {
+					$this->cache->invalidate("warn_count:{$normalizedName}");
+					$this->cache->invalidate("warn_list:{$normalizedName}");
+
+					if ($currentWarn !== null) {
+						$oldExpirationStr = $currentWarn->getExpiration() !== null
+							? $currentWarn->getExpiration()->format(Utils::DATE_TIME_FORMAT)
+							: 'Never';
+						$newExpirationStr = $newExpiration !== null
+							? $newExpiration->format(Utils::DATE_TIME_FORMAT)
+							: 'Never';
+
+						$newWarnEntry = new WarnEntry(
+							$currentWarn->getId(),
+							$currentWarn->getPlayerName(),
+							$currentWarn->getReason(),
+							$currentWarn->getSource(),
+							$newExpiration,
+							$currentWarn->getTimestamp()
+						);
+						(new WarnEditEvent(
+							$newWarnEntry,
+							'expiration',
+							$oldExpirationStr,
+							$newExpirationStr
+						))->call();
+					}
+				}
+
+				if ($onSuccess !== null) {
+					$onSuccess($affectedRows);
+				}
+			}, $this->wrapErrorHandler($onError, "Failed to update warning ID {$id}"));
+		}, $onError);
 	}
 
 	public function close() : void {

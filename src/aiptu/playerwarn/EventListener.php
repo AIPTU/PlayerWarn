@@ -15,6 +15,7 @@ namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\event\WarnAddEvent;
+use aiptu\playerwarn\event\WarnEditEvent;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\event\Listener;
@@ -96,6 +97,18 @@ class EventListener implements Listener {
 		$discordService = $this->plugin->getDiscordService();
 		if ($discordService !== null) {
 			$discordService->sendWarningRemoved($event->getWarnEntry());
+		}
+	}
+
+	public function onWarnEdit(WarnEditEvent $event) : void {
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendWarningEdited(
+				$event->getWarnEntry(),
+				$event->getEditType(),
+				$event->getOldValue(),
+				$event->getNewValue()
+			);
 		}
 	}
 

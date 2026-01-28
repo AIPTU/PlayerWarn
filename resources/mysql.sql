@@ -46,6 +46,14 @@ WHERE id = :id
 DELETE FROM player_warnings
 WHERE player_name = :player_name;
 -- #  }
+-- #  { get_id
+-- #    :id int
+-- #    :player_name string
+SELECT *
+FROM player_warnings
+WHERE id = :id
+    AND player_name = :player_name;
+-- #  }
 -- #  { get_all
 -- #    :player_name string
 SELECT *

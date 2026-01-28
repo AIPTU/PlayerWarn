@@ -1,7 +1,7 @@
 name: PlayerWarn
 main: aiptu\playerwarn\PlayerWarn
 version: 1.2.0
-api: [5.36.0]
+api: [5.39.0]
 author: AIPTU
 permissions:
   playerwarn.command.warn:

@@ -17,6 +17,7 @@ use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
@@ -41,6 +42,11 @@ class WarnsCommand extends Command implements PluginOwned {
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args) : bool {
 		if (!$this->testPermission($sender)) {
+			return false;
+		}
+
+		if (!$sender instanceof Player && !isset($args[0])) {
+			$sender->sendMessage(TextFormat::RED . 'Please specify a player name when using this command from the console.');
 			return false;
 		}
 

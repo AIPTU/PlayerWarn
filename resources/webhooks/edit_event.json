@@ -7,17 +7,32 @@
       "color": 16776960,
       "fields": [
         {
+          "name": "📋 Warning ID",
+          "value": "{id}",
+          "inline": true
+        },
+        {
+          "name": "💬 Current Reason",
+          "value": "{reason}",
+          "inline": false
+        },
+        {
+          "name": "📝 Source",
+          "value": "{source}",
+          "inline": true
+        },
+        {
           "name": "📌 Modified Field",
           "value": "{editType}",
           "inline": true
         },
         {
-          "name": "🔄 Previous",
+          "name": "🔄 Previous Value",
           "value": "{oldValue}",
           "inline": false
         },
         {
-          "name": "✨ Updated",
+          "name": "⚡ New Value",
           "value": "{newValue}",
           "inline": false
         }

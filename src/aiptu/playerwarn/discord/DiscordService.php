@@ -35,7 +35,7 @@ class DiscordService {
 		$this->emptyTemplate = [];
 	}
 
-	public function sendWarningAdded(WarnEntry $warnEntry) : void {
+	public function sendWarningAdded(WarnEntry $warnEntry, int $currentCount = 0) : void {
 		$template = $this->webhookTemplates['add'] ?? $this->emptyTemplate;
 		if (!$template) {
 			return;
@@ -44,37 +44,49 @@ class DiscordService {
 		$expirationString = self::formatExpiration($warnEntry->getExpiration());
 
 		$payload = $this->replaceTemplateVars($template, [
+			'id' => (string) $warnEntry->getId(),
 			'player' => $warnEntry->getPlayerName(),
 			'source' => $warnEntry->getSource(),
 			'reason' => $warnEntry->getReason(),
 			'timestamp' => $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT),
 			'expiration' => $expirationString,
+			'count' => (string) $currentCount,
 		]);
 
 		$this->sendWebhook($payload);
 	}
 
-	public function sendWarningRemoved(WarnEntry $warnEntry) : void {
+	public function sendWarningRemoved(WarnEntry $warnEntry, int $remainingCount = 0) : void {
 		$template = $this->webhookTemplates['remove'] ?? $this->emptyTemplate;
 		if (!$template) {
 			return;
 		}
 
 		$payload = $this->replaceTemplateVars($template, [
+			'id' => (string) $warnEntry->getId(),
 			'player' => $warnEntry->getPlayerName(),
+			'reason' => $warnEntry->getReason(),
+			'source' => $warnEntry->getSource(),
+			'timestamp' => $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT),
+			'remainingCount' => (string) $remainingCount,
 		]);
 
 		$this->sendWebhook($payload);
 	}
 
-	public function sendWarningExpired(WarnEntry $warnEntry) : void {
+	public function sendWarningExpired(WarnEntry $warnEntry, int $remainingCount = 0) : void {
 		$template = $this->webhookTemplates['expire'] ?? $this->emptyTemplate;
 		if (!$template) {
 			return;
 		}
 
 		$payload = $this->replaceTemplateVars($template, [
+			'id' => (string) $warnEntry->getId(),
 			'player' => $warnEntry->getPlayerName(),
+			'reason' => $warnEntry->getReason(),
+			'source' => $warnEntry->getSource(),
+			'expirationDate' => $warnEntry->getExpiration()?->format(Utils::DATE_TIME_FORMAT) ?? 'Never',
+			'remainingCount' => (string) $remainingCount,
 		]);
 
 		$this->sendWebhook($payload);
@@ -87,7 +99,10 @@ class DiscordService {
 		}
 
 		$payload = $this->replaceTemplateVars($template, [
+			'id' => (string) $warnEntry->getId(),
 			'player' => $warnEntry->getPlayerName(),
+			'reason' => $warnEntry->getReason(),
+			'source' => $warnEntry->getSource(),
 			'editType' => $editType,
 			'oldValue' => $oldValue,
 			'newValue' => $newValue,
@@ -96,7 +111,7 @@ class DiscordService {
 		$this->sendWebhook($payload);
 	}
 
-	public function sendPunishment(PlayerPunishmentEvent $event) : void {
+	public function sendPunishment(PlayerPunishmentEvent $event, int $warningCount = 0) : void {
 		$template = $this->webhookTemplates['punishment'] ?? $this->emptyTemplate;
 		if (!$template) {
 			return;
@@ -107,6 +122,7 @@ class DiscordService {
 			'punishmentType' => $event->getPunishmentType(),
 			'issuerName' => $event->getIssuerName(),
 			'reason' => $event->getReason(),
+			'warningCount' => (string) $warningCount,
 		]);
 
 		$this->sendWebhook($payload);

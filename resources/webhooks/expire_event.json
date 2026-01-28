@@ -5,7 +5,33 @@
       "title": "⚪ Warning Expired",
       "description": "**{player}**'s warning has automatically expired.\n\n_The player is forgiven._",
       "color": 9807270,
-      "fields": []
+      "fields": [
+        {
+          "name": "📋 Warning ID",
+          "value": "{id}",
+          "inline": true
+        },
+        {
+          "name": "📊 Remaining Warnings",
+          "value": "{remainingCount}",
+          "inline": true
+        },
+        {
+          "name": "💬 Reason",
+          "value": "{reason}",
+          "inline": false
+        },
+        {
+          "name": "📝 Source",
+          "value": "{source}",
+          "inline": true
+        },
+        {
+          "name": "📅 Expired Date",
+          "value": "{expirationDate}",
+          "inline": true
+        }
+      ]
     }
   ],
   "username": "PlayerWarn",

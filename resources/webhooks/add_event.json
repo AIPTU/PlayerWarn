@@ -7,19 +7,29 @@
       "color": 16724530,
       "fields": [
         {
-          "name": "📋 Source",
+          "name": "📋 Warning ID",
+          "value": "{id}",
+          "inline": true
+        },
+        {
+          "name": "📊 Total Warnings",
+          "value": "{count}",
+          "inline": true
+        },
+        {
+          "name": "📝 Source",
           "value": "{source}",
           "inline": true
         },
         {
-          "name": "⏰ Timestamp",
+          "name": "⏰ Issued At",
           "value": "{timestamp}",
           "inline": true
         },
         {
           "name": "⌛ Expires",
           "value": "{expiration}",
-          "inline": true
+          "inline": false
         }
       ]
     }

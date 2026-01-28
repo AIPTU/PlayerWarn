@@ -24,12 +24,12 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_8684288af2bd3668\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_32b4e34474b24256\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_8684288af2bd3668\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_32b4e34474b24256\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -154,9 +154,9 @@ class PlayerWarn extends PluginBase {
 
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
-		$expirationCheckInterval = $config->getNested('warning.expiration-check_interval');
+		$expirationCheckInterval = $config->getNested('warning.expiration-check-interval');
 		if (!is_int($expirationCheckInterval) || $expirationCheckInterval <= 0) {
-			throw new \InvalidArgumentException('Invalid "warning.expiration-check_interval" value. Expected positive integer.');
+			throw new \InvalidArgumentException('Invalid "warning.expiration-check-interval" value. Expected positive integer.');
 		}
 
 		$this->expirationCheckInterval = $expirationCheckInterval;

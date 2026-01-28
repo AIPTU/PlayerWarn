@@ -154,9 +154,9 @@ class PlayerWarn extends PluginBase {
 
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
-		$expirationCheckInterval = $config->getNested('warning.expiration-check_interval');
+		$expirationCheckInterval = $config->getNested('warning.expiration-check-interval');
 		if (!is_int($expirationCheckInterval) || $expirationCheckInterval <= 0) {
-			throw new \InvalidArgumentException('Invalid "warning.expiration-check_interval" value. Expected positive integer.');
+			throw new \InvalidArgumentException('Invalid "warning.expiration-check-interval" value. Expected positive integer.');
 		}
 
 		$this->expirationCheckInterval = $expirationCheckInterval;

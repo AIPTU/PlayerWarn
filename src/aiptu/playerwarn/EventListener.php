@@ -89,14 +89,36 @@ class EventListener implements Listener {
 	public function onWarnAdd(WarnAddEvent $event) : void {
 		$discordService = $this->plugin->getDiscordService();
 		if ($discordService !== null) {
-			$discordService->sendWarningAdded($event->getWarnEntry());
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningAdded($warnEntry, $count);
+				},
+				function (\Throwable $error) use ($discordService, $warnEntry) : void {
+					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
+					$discordService->sendWarningAdded($warnEntry, 0);
+				}
+			);
 		}
 	}
 
 	public function onWarnRemove(WarnRemoveEvent $event) : void {
 		$discordService = $this->plugin->getDiscordService();
 		if ($discordService !== null) {
-			$discordService->sendWarningRemoved($event->getWarnEntry());
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningRemoved($warnEntry, $count);
+				},
+				function (\Throwable $error) use ($discordService, $warnEntry) : void {
+					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
+					$discordService->sendWarningRemoved($warnEntry, 0);
+				}
+			);
 		}
 	}
 
@@ -115,14 +137,35 @@ class EventListener implements Listener {
 	public function onWarnExpired(WarnExpiredEvent $event) : void {
 		$discordService = $this->plugin->getDiscordService();
 		if ($discordService !== null) {
-			$discordService->sendWarningExpired($event->getWarnEntry());
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningExpired($warnEntry, $count);
+				},
+				function (\Throwable $error) use ($discordService, $warnEntry) : void {
+					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
+					$discordService->sendWarningExpired($warnEntry, 0);
+				}
+			);
 		}
 	}
 
 	public function onPlayerPunishment(PlayerPunishmentEvent $event) : void {
 		$discordService = $this->plugin->getDiscordService();
 		if ($discordService !== null) {
-			$discordService->sendPunishment($event);
+			$playerName = $event->getPlayer()->getName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $event) : void {
+					$discordService->sendPunishment($event, $count);
+				},
+				function (\Throwable $error) use ($discordService, $event) : void {
+					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
+					$discordService->sendPunishment($event, 0);
+				}
+			);
 		}
 	}
 }

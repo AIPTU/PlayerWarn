@@ -12,12 +12,17 @@
           "inline": true
         },
         {
+          "name": "⚠️ Total Warnings",
+          "value": "{warningCount}",
+          "inline": true
+        },
+        {
           "name": "👤 Issued By",
           "value": "{issuerName}",
           "inline": true
         },
         {
-          "name": "📝 Details",
+          "name": "📝 Reason",
           "value": "{reason}",
           "inline": false
         }

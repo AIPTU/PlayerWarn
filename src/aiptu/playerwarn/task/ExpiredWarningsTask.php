@@ -37,8 +37,9 @@ class ExpiredWarningsTask extends Task {
 						$player->sendMessage(
 							TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason()
 						);
-						(new WarnExpiredEvent($player, $warnEntry))->call();
 					}
+
+					(new WarnExpiredEvent($warnEntry))->call();
 				}
 
 				$this->plugin->getProvider()->removeExpiredWarns(

@@ -28,6 +28,10 @@ update_notifier: true
 
 # Warning settings
 warning:
+  # The `expiration-check-interval` option specifies the time in seconds after which a warning expires.
+  # Set to a positive integer. Default value: 180 (3 minutes)
+  expiration-check-interval: 180 
+
   # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.
   # Set to a positive integer. Default value: 3
   limit: 3
@@ -121,6 +125,7 @@ discord:
 ## Discord Integration
 
 Use this awesome website to generate valid json with built-in preview: [Discohook](https://discohook.org/), also you can send webhooks to your server with it if you just want fancy embed in your channel without any automatization.
+For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
 
 - Webhook on Discord
   1. Go to **Server settings** -> **Webhooks** -> **Create Webhook**

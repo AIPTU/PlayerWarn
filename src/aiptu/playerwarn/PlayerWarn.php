@@ -46,7 +46,6 @@ use const JSON_THROW_ON_ERROR;
 
 class PlayerWarn extends PluginBase {
 	private const float CONFIG_VERSION = 2.0;
-	private const int EXPIRATION_CHECK_INTERVAL = 6000; // 5 minutes
 
 	private WarnProvider $warnProvider;
 	private PunishmentService $punishmentService;
@@ -55,6 +54,7 @@ class PlayerWarn extends PluginBase {
 	private WarningTracker $warningTracker;
 
 	private bool $updateNotifierEnabled;
+	private int $expirationCheckInterval;
 	private int $warningLimit;
 	private PunishmentType $punishmentType;
 	private bool $broadcastToEveryone = true;
@@ -101,7 +101,7 @@ class PlayerWarn extends PluginBase {
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
 
-		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), self::EXPIRATION_CHECK_INTERVAL);
+		$this->getScheduler()->scheduleRepeatingTask(new ExpiredWarningsTask($this), $this->expirationCheckInterval * 20);
 
 		if ($this->updateNotifierEnabled) {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
@@ -153,6 +153,13 @@ class PlayerWarn extends PluginBase {
 		}
 
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
+
+		$expirationCheckInterval = $config->getNested('warning.expiration_check_interval');
+		if (!is_int($expirationCheckInterval) || $expirationCheckInterval <= 0) {
+			throw new \InvalidArgumentException('Invalid "warning.expiration_check_interval" value. Expected positive integer.');
+		}
+
+		$this->expirationCheckInterval = $expirationCheckInterval;
 
 		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
@@ -245,7 +252,7 @@ class PlayerWarn extends PluginBase {
 	private function loadWebhookTemplates() : array {
 		/** @var array<string, array<string, mixed>> $templates */
 		$templates = [];
-		$eventTypes = ['add', 'remove', 'expire', 'punishment'];
+		$eventTypes = ['add', 'remove', 'edit', 'expire', 'punishment'];
 
 		foreach ($eventTypes as $eventType) {
 			$jsonFile = Path::join($this->getDataFolder(), 'webhooks', "{$eventType}_event.json");

@@ -22,6 +22,7 @@ use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
 use poggit\libasynql\DataConnector;
+use function count;
 use function strtolower;
 
 class WarnProvider {
@@ -120,19 +121,41 @@ class WarnProvider {
 	) : void {
 		$normalizedName = strtolower($playerName);
 
-		$this->database->executeChange('warn.remove_id', [
+		$this->database->executeSelect('warn.get_id', [
 			'id' => $id,
 			'player_name' => $normalizedName,
-		], function (int $affectedRows) use ($normalizedName, $onSuccess) : void {
-			if ($affectedRows > 0) {
-				$this->cache->invalidate("warn_count:{$normalizedName}");
-				$this->cache->invalidate("warn_list:{$normalizedName}");
+		], function (array $rows) use ($normalizedName, $id, $onSuccess, $onError) : void {
+			$warnEntry = null;
+			if (count($rows) > 0) {
+				$row = $rows[0];
+				$warnEntry = new WarnEntry(
+					(int) $row['id'],
+					$row['player_name'],
+					$row['reason'],
+					$row['source'],
+					$row['expiration'] !== null ? new DateTimeImmutable($row['expiration']) : null,
+					new DateTimeImmutable($row['timestamp'])
+				);
 			}
 
-			if ($onSuccess !== null) {
-				$onSuccess($affectedRows);
-			}
-		}, $this->wrapErrorHandler($onError, "Failed to remove warning ID {$id}"));
+			$this->database->executeChange('warn.remove_id', [
+				'id' => $id,
+				'player_name' => $normalizedName,
+			], function (int $affectedRows) use ($normalizedName, $warnEntry, $onSuccess) : void {
+				if ($affectedRows > 0) {
+					$this->cache->invalidate("warn_count:{$normalizedName}");
+					$this->cache->invalidate("warn_list:{$normalizedName}");
+
+					if ($warnEntry !== null) {
+						(new WarnRemoveEvent($warnEntry))->call();
+					}
+				}
+
+				if ($onSuccess !== null) {
+					$onSuccess($affectedRows);
+				}
+			}, $this->wrapErrorHandler($onError, "Failed to remove warning ID {$id}"));
+		}, $this->wrapErrorHandler($onError, "Failed to fetch warning ID {$id}"));
 	}
 
 	/**

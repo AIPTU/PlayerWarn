@@ -5,7 +5,33 @@
       "title": "🟢 Warning Cleared",
       "description": "**{player}**'s warning has been removed by a moderator.\n\n_The player has a clean slate._",
       "color": 3066993,
-      "fields": []
+      "fields": [
+        {
+          "name": "📋 Warning ID",
+          "value": "{id}",
+          "inline": true
+        },
+        {
+          "name": "📊 Remaining Warnings",
+          "value": "{remainingCount}",
+          "inline": true
+        },
+        {
+          "name": "💬 Reason (of removed warning)",
+          "value": "{reason}",
+          "inline": false
+        },
+        {
+          "name": "📝 Source",
+          "value": "{source}",
+          "inline": true
+        },
+        {
+          "name": "⏰ Originally Issued",
+          "value": "{timestamp}",
+          "inline": true
+        }
+      ]
     }
   ],
   "username": "PlayerWarn",

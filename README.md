@@ -146,6 +146,7 @@ For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
 | `/clearwarns <player>` | Clear all warnings for a player | `playerwarn.command.clearwarns` | OP |
 | `/delwarn <player> <id>` | Delete a specific warning by ID | `playerwarn.command.delwarn` | OP |
 | `/editwarn <player> <id> <reason> [duration]` | Edit a specific warning by ID | `playerwarn.command.editwarn` | OP |
+| `/listwarns` | View all players with warnings | `playerwarn.command.listwarns` | OP |
 
 ### Examples
 

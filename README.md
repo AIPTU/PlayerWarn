@@ -1,5 +1,8 @@
 # PlayerWarn
 
+[![PlayerWarn build state badge](https://poggit.pmmp.io/shield.state/PlayerWarn)](https://poggit.pmmp.io/p/PlayerWarn)
+[![PlayerWarn download count badge](https://poggit.pmmp.io/shield.dl.total/PlayerWarn)](https://poggit.pmmp.io/p/PlayerWarn)
+
 A PocketMine-MP plugin that allows server administrators to issue warnings to players and keep track of their warning history.
 
 ## Features

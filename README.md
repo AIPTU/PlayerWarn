@@ -165,6 +165,7 @@ For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
 - `playerwarn.command.clearwarns` - Use the /clearwarns command (default: op)
 - `playerwarn.command.delwarn` - Use the /delwarn command (default: op)
 - `playerwarn.command.editwarn` - Use the /editwarn command (default: op)
+- `playerwarn.command.listwarns` - Use the /listwarns command (default: op)
 - `playerwarn.bypass` - Cannot be warned (default: op)
 
 Grant these permissions to specific player groups or individuals using a permissions management plugin of your choice.

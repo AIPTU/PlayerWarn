@@ -167,7 +167,7 @@ class WarnCommand extends Command implements PluginOwned {
 		if ($this->plugin->isBroadcastToEveryoneEnabled()) {
 			$this->plugin->getServer()->broadcastMessage(
 				TextFormat::LIGHT_PURPLE . $entry->getPlayerName() . TextFormat::YELLOW . ' has been warned for: ' .
-				TextFormat::LIGHT_PURPLE . $entry->getReason() . ' by ' . TextFormat::LIGHT_PURPLE . $sender->getName()
+				TextFormat::LIGHT_PURPLE . $entry->getReason() . TextFormat::YELLOW . ' by ' . TextFormat::LIGHT_PURPLE . $sender->getName()
 			);
 		}
 	}

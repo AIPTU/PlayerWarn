@@ -92,7 +92,7 @@ class PlayerWarn extends PluginBase {
 		$this->checkMigration();
 
 		$commandMap = $this->getServer()->getCommandMap();
-		$commandMap->registerAll('PlayerWarn', [
+		$commandMap->registerAll($this->getName(), [
 			new WarnCommand($this),
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),

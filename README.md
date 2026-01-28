@@ -124,7 +124,7 @@ discord:
 
 ## Discord Integration
 
-Use this awesome website to generate valid json with built-in preview: [Discohook](https://discohook.org/), also you can send webhooks to your server with it if you just want fancy embed in your channel without any automatization.
+Use this awesome website to generate valid json with built-in preview: [Discohook](https://discohook.app/), also you can send webhooks to your server with it if you just want fancy embed in your channel without any automatization.
 For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
 
 - Webhook on Discord
@@ -169,13 +169,13 @@ For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
 
 Grant these permissions to specific player groups or individuals using a permissions management plugin of your choice.
 
-## Migration
+## Migration from v1.2.0 to v1.3.0
 
 Upgrading from JSON-based versions? The plugin automatically migrates your data on first run. The old file is renamed to `warnings.json.migrated`.
 
-## Upcoming Features
+## TODO Features
 
-- Currently none planned. You can contribute or suggest for new features.
+- **WarnHistory**: provide advanced warning history, analytics, and reporting features.
 
 ## Additional Notes
 

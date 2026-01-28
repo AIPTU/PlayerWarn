@@ -1,7 +1,7 @@
 name: PlayerWarn
 main: aiptu\playerwarn\PlayerWarn
 version: 1.2.0
-api: [5.0.0]
+api: [5.39.0]
 author: AIPTU
 permissions:
   playerwarn.command.warn:
@@ -18,6 +18,9 @@ permissions:
     default: op
   playerwarn.command.editwarn:
     description: Permission to use the /editwarn command
+    default: op
+  playerwarn.command.listwarns:
+    description: Permission to use the /listwarns command
     default: op
   playerwarn.bypass:
     description: Permission to bypass being warned

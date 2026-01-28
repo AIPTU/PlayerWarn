@@ -16,6 +16,7 @@ namespace aiptu\playerwarn;
 use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\DeleteWarnCommand;
 use aiptu\playerwarn\commands\EditWarnCommand;
+use aiptu\playerwarn\commands\ListWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
@@ -24,12 +25,12 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_7cefb316ae143976\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_e0f0161202faafde\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_7cefb316ae143976\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_e0f0161202faafde\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -91,12 +92,13 @@ class PlayerWarn extends PluginBase {
 		$this->checkMigration();
 
 		$commandMap = $this->getServer()->getCommandMap();
-		$commandMap->registerAll('PlayerWarn', [
+		$commandMap->registerAll($this->getName(), [
 			new WarnCommand($this),
 			new WarnsCommand($this),
 			new ClearWarnsCommand($this),
 			new DeleteWarnCommand($this),
 			new EditWarnCommand($this),
+			new ListWarnsCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);

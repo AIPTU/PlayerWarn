@@ -21,7 +21,7 @@ use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
-use aiptu\playerwarn\libs\_7cefb316ae143976\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_e0f0161202faafde\poggit\libasynql\DataConnector;
 use function count;
 use function strtolower;
 
@@ -255,6 +255,34 @@ class WarnProvider {
 				$onSuccess($warns);
 			}
 		}, $this->wrapErrorHandler($onError, 'Failed to fetch expired warnings'));
+	}
+
+	/**
+	 * Retrieves all players with active warnings and their warning counts.
+	 */
+	public function getAllPlayersWithWarnings(
+		?Closure $onSuccess = null,
+		?Closure $onError = null
+	) : void {
+		$this->database->executeSelect('warn.get_all_players', [], function (array $rows) use ($onSuccess) : void {
+			$playersData = [];
+
+			foreach ($rows as $row) {
+				try {
+					$playersData[] = [
+						'player' => $row['player_name'],
+						'count' => (int) $row['count'],
+						'last_warning' => new DateTimeImmutable($row['last_warning']),
+					];
+				} catch (\Throwable $e) {
+					$this->logger->error('Failed to parse player warning data: ' . $e->getMessage());
+				}
+			}
+
+			if ($onSuccess !== null) {
+				$onSuccess($playersData);
+			}
+		}, $this->wrapErrorHandler($onError, 'Failed to fetch all players with warnings'));
 	}
 
 	/**

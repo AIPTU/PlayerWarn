@@ -120,6 +120,39 @@ class Utils {
 	}
 
 	/**
+	 * Formats a DateTimeImmutable object into a human-readable "time ago" string.
+	 *
+	 * @param DateTimeImmutable $dateTime the date/time to format
+	 *
+	 * @return string the formatted time ago string
+	 */
+	public static function formatTimeAgo(DateTimeImmutable $dateTime) : string {
+		$now = new DateTimeImmutable();
+		$diff = $now->getTimestamp() - $dateTime->getTimestamp();
+
+		if ($diff < 60) {
+			return 'just now';
+		}
+
+		if ($diff < 3600) {
+			$minutes = (int) ($diff / 60);
+			return $minutes . ' minute' . ($minutes > 1 ? 's' : '') . ' ago';
+		}
+
+		if ($diff < 86400) {
+			$hours = (int) ($diff / 3600);
+			return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
+		}
+
+		if ($diff < 604800) {
+			$days = (int) ($diff / 86400);
+			return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
+		}
+
+		return $dateTime->format(self::DATE_TIME_FORMAT);
+	}
+
+	/**
 	 * Replaces variables in a given string with their corresponding values from the provided associative array.
 	 *
 	 * @param string $str  the input string containing placeholders to be replaced

@@ -77,6 +77,16 @@ FROM player_warnings
 WHERE expiration IS NOT NULL
     AND expiration <= CURRENT_TIMESTAMP;
 -- #  }
+-- #  { get_all_players
+SELECT player_name,
+    COUNT(*) as count,
+    MAX(timestamp) as last_warning
+FROM player_warnings
+WHERE expiration IS NULL
+    OR expiration > CURRENT_TIMESTAMP
+GROUP BY player_name
+ORDER BY count DESC;
+-- #  }
 -- #  { delete_expired
 DELETE FROM player_warnings
 WHERE expiration IS NOT NULL

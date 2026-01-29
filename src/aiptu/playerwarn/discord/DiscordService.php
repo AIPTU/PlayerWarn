@@ -137,7 +137,7 @@ class DiscordService {
 		$durationString = Utils::formatDuration($secondsRemaining);
 		$dateString = $expiration->format(Utils::DATE_TIME_FORMAT);
 
-		return "{$durationString} ({$dateString})";
+		return "until {$durationString} ({$dateString})";
 	}
 
 	private function replaceTemplateVars(array $template, array $vars) : array {
@@ -175,7 +175,7 @@ class DiscordService {
 				}
 
 				if ($responseCode === 429 || ($responseCode >= 500 && $responseCode < 600)) {
-					$this->logger->info("Discord webhook temporary error (code {$responseCode}), will retry");
+					$this->logger->info("Discord webhook temporary error (code {$responseCode})");
 					return;
 				}
 

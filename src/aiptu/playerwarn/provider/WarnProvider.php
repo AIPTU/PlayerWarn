@@ -194,7 +194,7 @@ class WarnProvider {
 
 	/**
 	 * Retrieves the count of warnings for a player.
-	 * Uses cache to minimize database queries (5 minute TTL).
+	 * Uses cache to minimize database queries.
 	 */
 	public function getWarningCount(
 		string $playerName,

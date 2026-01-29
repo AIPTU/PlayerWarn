@@ -31,9 +31,9 @@ update_notifier: true
 
 # Warning settings
 warning:
-  # The `expiration-check-interval` option specifies the time in seconds after which a warning expires.
+  # The `expiration_check_interval` option specifies the time in seconds after which a warning expires.
   # Set to a positive integer. Default value: 180 (3 minutes)
-  expiration-check-interval: 180 
+  expiration_check_interval: 180 
 
   # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.
   # Set to a positive integer. Default value: 3

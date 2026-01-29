@@ -15,6 +15,7 @@ namespace aiptu\playerwarn\task;
 
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
+use DateTimeImmutable;
 use pocketmine\player\Player;
 use pocketmine\scheduler\Task;
 
@@ -24,7 +25,8 @@ class DelayedPunishmentTask extends Task {
 		private Player $player,
 		private PunishmentType $type,
 		private string $issuerName,
-		private string $reason
+		private string $reason,
+		private ?DateTimeImmutable $until = null
 	) {}
 
 	public function onRun() : void {
@@ -32,6 +34,6 @@ class DelayedPunishmentTask extends Task {
 			return;
 		}
 
-		$this->service->apply($this->player, $this->type, $this->issuerName, $this->reason);
+		$this->service->apply($this->player, $this->type, $this->issuerName, $this->reason, $this->until);
 	}
 }

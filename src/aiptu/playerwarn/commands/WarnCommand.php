@@ -205,7 +205,10 @@ class WarnCommand extends Command implements PluginOwned {
 			TextFormat::AQUA . 'Player ' .
 			TextFormat::YELLOW . $entry->getPlayerName() .
 			TextFormat::AQUA . ' has been warned for: ' .
-			TextFormat::YELLOW . $entry->getReason()
+			TextFormat::YELLOW . $entry->getReason() .
+			TextFormat::AQUA . ' (Warning ID: ' .
+			TextFormat::YELLOW . $entry->getId() .
+			TextFormat::AQUA . ')'
 		);
 		$sender->sendMessage(
 			TextFormat::AQUA . 'The warning will ' . $expirationText

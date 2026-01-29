@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace aiptu\playerwarn\cache;
 
 use function array_keys;
-use function count;
 use function microtime;
 use function preg_match;
 use const PHP_FLOAT_MAX;
@@ -28,9 +27,15 @@ class QueryCache {
 	 *
 	 * @param string $key   cache key
 	 * @param mixed  $value value to cache
-	 * @param float  $ttl   time to live in seconds (0 = no expiry)
+	 * @param float  $ttl   time to live in seconds (0 = no expiry, max 86400)
+	 *
+	 * @throws \InvalidArgumentException if TTL is negative or exceeds 24 hours
 	 */
 	public function set(string $key, mixed $value, float $ttl = 300.0) : void {
+		if ($ttl < 0 || $ttl > 86400) {
+			throw new \InvalidArgumentException('TTL must be between 0 and 86400 seconds (24 hours)');
+		}
+
 		$expiry = $ttl > 0 ? microtime(true) + $ttl : PHP_FLOAT_MAX;
 		$this->cache[$key] = ['data' => $value, 'expiry' => $expiry];
 	}
@@ -86,25 +91,5 @@ class QueryCache {
 	 */
 	public function clear() : void {
 		$this->cache = [];
-	}
-
-	/**
-	 * Get cache statistics for debugging.
-	 *
-	 * @return array{total: int, expired: int}
-	 */
-	public function getStats() : array {
-		$now = microtime(true);
-		$expired = 0;
-		foreach ($this->cache as $entry) {
-			if ($now > $entry['expiry']) {
-				++$expired;
-			}
-		}
-
-		return [
-			'total' => count($this->cache),
-			'expired' => $expired,
-		];
 	}
 }

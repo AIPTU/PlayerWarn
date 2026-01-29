@@ -26,6 +26,8 @@ use function count;
 use function strtolower;
 
 class WarnProvider {
+	private const float CACHE_TTL_SECONDS = 300.0; // 5 minutes
+
 	private QueryCache $cache;
 
 	public function __construct(
@@ -112,6 +114,10 @@ class WarnProvider {
 	/**
 	 * Removes a specific warning by its ID.
 	 * Invalidates caches for the affected player.
+	 *
+	 * Note: This method performs two database queries to support event firing.
+	 * The first query fetches the warning entry needed for WarnRemoveEvent,
+	 * then the second query performs the actual deletion. This is intentional.
 	 */
 	public function removeWarnById(
 		int $id,
@@ -218,7 +224,7 @@ class WarnProvider {
 		], function (array $rows) use ($cacheKey, $onSuccess) : void {
 			$count = (int) ($rows[0]['count'] ?? 0);
 
-			$this->cache->set($cacheKey, $count, 300.0);
+			$this->cache->set($cacheKey, $count, self::CACHE_TTL_SECONDS);
 
 			if ($onSuccess !== null) {
 				$onSuccess($count);

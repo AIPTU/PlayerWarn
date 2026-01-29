@@ -23,7 +23,7 @@ use function end;
 use function implode;
 use function intdiv;
 use function preg_match;
-use function str_replace;
+use function strtr;
 
 class Utils {
 	public const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
@@ -161,10 +161,11 @@ class Utils {
 	 * @return string the string with all placeholders replaced by their corresponding values
 	 */
 	public static function replaceVars(string $str, array $vars) : string {
+		$replacements = [];
 		foreach ($vars as $key => $value) {
-			$str = str_replace("{{$key}}", (string) $value, $str);
+			$replacements["{{$key}}"] = (string) $value;
 		}
 
-		return $str;
+		return strtr($str, $replacements);
 	}
 }

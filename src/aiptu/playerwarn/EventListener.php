@@ -96,9 +96,8 @@ class EventListener implements Listener {
 				function (int $count) use ($discordService, $warnEntry) : void {
 					$discordService->sendWarningAdded($warnEntry, $count);
 				},
-				function (\Throwable $error) use ($discordService, $warnEntry) : void {
-					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
-					$discordService->sendWarningAdded($warnEntry, 0);
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
 				}
 			);
 		}
@@ -114,9 +113,8 @@ class EventListener implements Listener {
 				function (int $count) use ($discordService, $warnEntry) : void {
 					$discordService->sendWarningRemoved($warnEntry, $count);
 				},
-				function (\Throwable $error) use ($discordService, $warnEntry) : void {
-					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
-					$discordService->sendWarningRemoved($warnEntry, 0);
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
 				}
 			);
 		}
@@ -144,9 +142,8 @@ class EventListener implements Listener {
 				function (int $count) use ($discordService, $warnEntry) : void {
 					$discordService->sendWarningExpired($warnEntry, $count);
 				},
-				function (\Throwable $error) use ($discordService, $warnEntry) : void {
-					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
-					$discordService->sendWarningExpired($warnEntry, 0);
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
 				}
 			);
 		}
@@ -161,9 +158,8 @@ class EventListener implements Listener {
 				function (int $count) use ($discordService, $event) : void {
 					$discordService->sendPunishment($event, $count);
 				},
-				function (\Throwable $error) use ($discordService, $event) : void {
-					$this->plugin->getLogger()->debug('Failed to fetch warning count for Discord: ' . $error->getMessage());
-					$discordService->sendPunishment($event, 0);
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
 				}
 			);
 		}

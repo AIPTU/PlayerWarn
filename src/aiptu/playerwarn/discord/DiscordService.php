@@ -19,6 +19,7 @@ use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\Server;
 use pocketmine\utils\InternetRequestResult;
+use function count;
 use function is_array;
 use function is_string;
 
@@ -37,7 +38,7 @@ class DiscordService {
 
 	public function sendWarningAdded(WarnEntry $warnEntry, int $currentCount = 0) : void {
 		$template = $this->webhookTemplates['add'] ?? $this->emptyTemplate;
-		if (!$template) {
+		if (count($template) === 0) {
 			return;
 		}
 
@@ -58,7 +59,7 @@ class DiscordService {
 
 	public function sendWarningRemoved(WarnEntry $warnEntry, int $remainingCount = 0) : void {
 		$template = $this->webhookTemplates['remove'] ?? $this->emptyTemplate;
-		if (!$template) {
+		if (count($template) === 0) {
 			return;
 		}
 
@@ -76,7 +77,7 @@ class DiscordService {
 
 	public function sendWarningExpired(WarnEntry $warnEntry, int $remainingCount = 0) : void {
 		$template = $this->webhookTemplates['expire'] ?? $this->emptyTemplate;
-		if (!$template) {
+		if (count($template) === 0) {
 			return;
 		}
 
@@ -94,7 +95,7 @@ class DiscordService {
 
 	public function sendWarningEdited(WarnEntry $warnEntry, string $editType, string $oldValue, string $newValue) : void {
 		$template = $this->webhookTemplates['edit'] ?? $this->emptyTemplate;
-		if (!$template) {
+		if (count($template) === 0) {
 			return;
 		}
 
@@ -113,7 +114,7 @@ class DiscordService {
 
 	public function sendPunishment(PlayerPunishmentEvent $event, int $warningCount = 0) : void {
 		$template = $this->webhookTemplates['punishment'] ?? $this->emptyTemplate;
-		if (!$template) {
+		if (count($template) === 0) {
 			return;
 		}
 
@@ -140,14 +141,25 @@ class DiscordService {
 		return "until {$durationString} ({$dateString})";
 	}
 
-	private function replaceTemplateVars(array $template, array $vars) : array {
+	/**
+	 * Replace template variables recursively.
+	 *
+	 * @param int $depth current recursion depth
+	 *
+	 * @throws \RuntimeException if template nesting exceeds maximum depth
+	 */
+	private function replaceTemplateVars(array $template, array $vars, int $depth = 0) : array {
+		if ($depth > 10) {
+			throw new \RuntimeException('Template nesting too deep (max 10 levels)');
+		}
+
 		$result = [];
 
 		foreach ($template as $key => $value) {
 			if (is_string($value)) {
 				$result[$key] = Utils::replaceVars($value, $vars);
 			} elseif (is_array($value)) {
-				$result[$key] = $this->replaceTemplateVars($value, $vars);
+				$result[$key] = $this->replaceTemplateVars($value, $vars, $depth + 1);
 			} else {
 				$result[$key] = $value;
 			}

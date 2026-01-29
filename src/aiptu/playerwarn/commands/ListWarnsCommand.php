@@ -21,6 +21,7 @@ use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
 use pocketmine\utils\TextFormat;
 use function count;
+use function implode;
 use function str_repeat;
 use function usort;
 
@@ -72,12 +73,15 @@ class ListWarnsCommand extends Command implements PluginOwned {
 
 					$timeAgo = Utils::formatTimeAgo($lastWarning);
 
+					$warningIds = implode(', ', $playerData['warning_ids']);
+
 					$sender->sendMessage(
 						TextFormat::YELLOW . $playerName .
 						TextFormat::GRAY . ' - ' .
 						TextFormat::RED . $warningCount .
 						TextFormat::GRAY . ' warning' . ($warningCount > 1 ? 's' : '') .
-						TextFormat::DARK_GRAY . ' (Last: ' . $timeAgo . ')'
+						TextFormat::DARK_GRAY . ' (Last: ' . $timeAgo . ')' .
+						TextFormat::YELLOW . 'IDs: ' . $warningIds
 					);
 				}
 

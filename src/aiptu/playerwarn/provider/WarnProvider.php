@@ -23,6 +23,7 @@ use Closure;
 use DateTimeImmutable;
 use poggit\libasynql\DataConnector;
 use function count;
+use function explode;
 use function strtolower;
 
 class WarnProvider {
@@ -279,6 +280,7 @@ class WarnProvider {
 						'player' => $row['player_name'],
 						'count' => (int) $row['count'],
 						'last_warning' => new DateTimeImmutable($row['last_warning']),
+						'warning_ids' => isset($row['warning_ids']) ? explode(',', (string) $row['warning_ids']) : [],
 					];
 				} catch (\Throwable $e) {
 					$this->logger->error('Failed to parse player warning data: ' . $e->getMessage());

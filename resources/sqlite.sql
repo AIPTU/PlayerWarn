@@ -80,7 +80,8 @@ WHERE expiration IS NOT NULL
 -- #  { get_all_players
 SELECT player_name,
     COUNT(*) as count,
-    MAX(timestamp) as last_warning
+    MAX(timestamp) as last_warning,
+    GROUP_CONCAT(id) as warning_ids
 FROM player_warnings
 WHERE expiration IS NULL
     OR expiration > CURRENT_TIMESTAMP

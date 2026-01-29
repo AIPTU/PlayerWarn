@@ -21,7 +21,7 @@ use aiptu\playerwarn\utils\Utils;
 use aiptu\playerwarn\warns\WarnEntry;
 use Closure;
 use DateTimeImmutable;
-use aiptu\playerwarn\libs\_e0f0161202faafde\poggit\libasynql\DataConnector;
+use aiptu\playerwarn\libs\_6d59fc2a2e926b48\poggit\libasynql\DataConnector;
 use function count;
 use function strtolower;
 
@@ -194,7 +194,7 @@ class WarnProvider {
 
 	/**
 	 * Retrieves the count of warnings for a player.
-	 * Uses cache to minimize database queries (5 minute TTL).
+	 * Uses cache to minimize database queries.
 	 */
 	public function getWarningCount(
 		string $playerName,

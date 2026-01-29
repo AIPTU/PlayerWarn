@@ -35,20 +35,21 @@ class PunishmentService {
 		Player $player,
 		PunishmentType $type,
 		string $issuerName,
-		string $reason
+		string $reason,
+		?DateTimeImmutable $until = null
 	) : void {
 		if ($this->delaySeconds <= 0) {
-			$this->apply($player, $type, $issuerName, $reason);
+			$this->apply($player, $type, $issuerName, $reason, $until);
 			return;
 		}
 
 		$this->plugin->getScheduler()->scheduleDelayedTask(
-			new DelayedPunishmentTask($this, $player, $type, $issuerName, $reason),
+			new DelayedPunishmentTask($this, $player, $type, $issuerName, $reason, $until),
 			$this->delaySeconds * 20
 		);
 
 		$warningMessage = Utils::replaceVars($this->warningMessage, [
-			'delay' => $this->delaySeconds,
+			'delay' => (string) $this->delaySeconds,
 		]);
 		$player->sendMessage($warningMessage);
 	}
@@ -80,7 +81,7 @@ class PunishmentService {
 				PunishmentType::KICK => $this->kick($player, $message),
 				PunishmentType::BAN => $this->ban($player, $reason, $issuerName, $message, $until),
 				PunishmentType::BAN_IP => $this->banIp($player, $reason, $issuerName, $message, $until),
-				PunishmentType::TEMPBAN => $this->tempBan($player, $reason, $issuerName, $message, $until),
+				PunishmentType::TEMPBAN => $this->ban($player, $reason, $issuerName, $message, $until ?? (new DateTimeImmutable())->modify('+1 day')),
 				PunishmentType::NONE => null,
 			};
 		} catch (\Throwable $e) {
@@ -112,7 +113,7 @@ class PunishmentService {
 		$expiry = $until !== null ? \DateTime::createFromImmutable($until) : null;
 		$banList->addBan($playerName, $reason, $expiry, $issuerName);
 		$player->kick($message);
-		$this->logger->info("Banned player: {$playerName}");
+		$this->logger->info("Banned player: {$playerName}" . ($expiry !== null ? " until {$expiry->format('Y-m-d H:i:s')}" : ' permanently'));
 	}
 
 	private function banIp(
@@ -136,32 +137,7 @@ class PunishmentService {
 		$ipBanList->addBan($ip, $reason, $expiry, $issuerName);
 		$player->kick($message);
 		$this->server->getNetwork()->blockAddress($ip, -1);
-		$this->logger->info("IP banned player: {$playerName} (IP: {$ip})");
-	}
-
-	private function tempBan(
-		Player $player,
-		string $reason,
-		string $issuerName,
-		string $message,
-		?DateTimeImmutable $until = null
-	) : void {
-		$playerName = $player->getName();
-		$banList = $this->server->getNameBans();
-
-		if ($banList->isBanned($playerName)) {
-			$this->logger->info("Player {$playerName} is already banned, skipping duplicate ban");
-			$player->kick($message);
-			return;
-		}
-
-		// Use provided expiration or default to 1 day
-		$expiration = $until ?? (new DateTimeImmutable())->modify('+1 day');
-		$expiry = \DateTime::createFromImmutable($expiration);
-
-		$banList->addBan($playerName, $reason, $expiry, $issuerName);
-		$player->kick($message);
-		$this->logger->info("Temp banned player: {$playerName} until {$expiration->format('Y-m-d H:i:s')}");
+		$this->logger->info("IP banned player: {$playerName} (IP: {$ip})" . ($expiry !== null ? " until {$expiry->format('Y-m-d H:i:s')}" : ' permanently'));
 	}
 
 	public function getDelaySeconds() : int {

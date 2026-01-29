@@ -25,12 +25,15 @@ use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
-use aiptu\playerwarn\libs\_e0f0161202faafde\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\utils\Utils;
+use DateTimeImmutable;
+use InvalidArgumentException;
+use aiptu\playerwarn\libs\_6d59fc2a2e926b48\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
 use pocketmine\utils\TextFormat;
-use aiptu\playerwarn\libs\_e0f0161202faafde\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_6d59fc2a2e926b48\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -59,6 +62,7 @@ class PlayerWarn extends PluginBase {
 	private int $warningLimit;
 	private PunishmentType $punishmentType;
 	private bool $broadcastToEveryone = true;
+	private ?DateTimeImmutable $tempbanDuration = null;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -87,8 +91,8 @@ class PlayerWarn extends PluginBase {
 		);
 
 		$this->warnProvider = new WarnProvider($connector, $this->getLogger());
-
-		$this->initializeServices();
+		$this->pendingPunishmentManager = new PendingPunishmentManager();
+		$this->warningTracker = new WarningTracker();
 		$this->checkMigration();
 
 		$commandMap = $this->getServer()->getCommandMap();
@@ -111,9 +115,7 @@ class PlayerWarn extends PluginBase {
 	}
 
 	public function onDisable() : void {
-		if (isset($this->warnProvider)) {
-			$this->warnProvider->close();
-		}
+		$this->warnProvider->close();
 	}
 
 	/**
@@ -151,61 +153,73 @@ class PlayerWarn extends PluginBase {
 
 		$updateNotifierEnabled = $config->get('update_notifier');
 		if (!is_bool($updateNotifierEnabled)) {
-			throw new \InvalidArgumentException('Invalid "update_notifier" value. Expected boolean.');
+			throw new InvalidArgumentException('Invalid "update_notifier" value. Expected boolean.');
 		}
 
 		$this->updateNotifierEnabled = $updateNotifierEnabled;
 
-		$expirationCheckInterval = $config->getNested('warning.expiration-check-interval');
+		$expirationCheckInterval = $config->getNested('warning.expiration_check_interval');
 		if (!is_int($expirationCheckInterval) || $expirationCheckInterval <= 0) {
-			throw new \InvalidArgumentException('Invalid "warning.expiration-check-interval" value. Expected positive integer.');
+			throw new InvalidArgumentException('Invalid "warning.expiration_check_interval" value. Expected positive integer.');
 		}
 
 		$this->expirationCheckInterval = $expirationCheckInterval;
 
 		$warningLimit = $config->getNested('warning.limit');
 		if (!is_int($warningLimit) || $warningLimit <= 0) {
-			throw new \InvalidArgumentException('Invalid "warning.limit" value. Expected positive integer.');
+			throw new InvalidArgumentException('Invalid "warning.limit" value. Expected positive integer.');
 		}
 
 		$this->warningLimit = $warningLimit;
 
 		$punishmentTypeStr = $config->getNested('punishment.type', 'none');
 		if (!is_string($punishmentTypeStr)) {
-			throw new \InvalidArgumentException('Invalid "punishment.type" value. Expected string.');
+			throw new InvalidArgumentException('Invalid "punishment.type" value. Expected string.');
 		}
 
 		$punishmentType = PunishmentType::fromString($punishmentTypeStr);
 		if ($punishmentType === null) {
-			throw new \InvalidArgumentException(
+			throw new InvalidArgumentException(
 				'Invalid "punishment.type" value. Valid options: none, kick, ban, ban-ip, tempban'
 			);
 		}
 
 		$this->punishmentType = $punishmentType;
 
+		if ($punishmentType === PunishmentType::TEMPBAN) {
+			$tempbanDurationStr = $config->getNested('punishment.tempban_duration', '1 day');
+			if (!is_string($tempbanDurationStr)) {
+				throw new InvalidArgumentException('Invalid "punishment.tempban_duration" value. Expected string.');
+			}
+
+			try {
+				$this->tempbanDuration = Utils::parseDurationString($tempbanDurationStr);
+				if ($this->tempbanDuration === null) {
+					throw new InvalidArgumentException('Tempban duration cannot be empty or "never".');
+				}
+			} catch (InvalidArgumentException $e) {
+				throw new InvalidArgumentException(
+					'Invalid "punishment.tempban_duration" format: ' . $e->getMessage() .
+					'. Example: "1d", "12h", "1d12h30m"'
+				);
+			}
+		}
+
 		$broadcastToEveryone = $config->getNested('warning.broadcast_to_everyone', true);
 		if (!is_bool($broadcastToEveryone)) {
-			throw new \InvalidArgumentException('Invalid "warning.broadcast_to_everyone" value. Expected boolean.');
+			throw new InvalidArgumentException('Invalid "warning.broadcast_to_everyone" value. Expected boolean.');
 		}
 
 		$this->broadcastToEveryone = $broadcastToEveryone;
-	}
-
-	/**
-	 * Initializes various services used by the plugin.
-	 */
-	private function initializeServices() : void {
-		$config = $this->getConfig();
 
 		$delaySeconds = $config->getNested('warning.delay', 5);
 		if (!is_int($delaySeconds) || $delaySeconds < 0) {
 			$delaySeconds = 5;
 		}
 
-		$warningMessage = $config->getNested('warning.message', '&cYou have reached the warning limit.');
+		$warningMessage = $config->getNested('warning.message', '&cYou have reached the warning limit. You will be punished in {delay} seconds.');
 		if (!is_string($warningMessage)) {
-			$warningMessage = '&cYou have reached the warning limit.';
+			$warningMessage = '&cYou have reached the warning limit. You will be punished in {delay} seconds.';
 		}
 
 		$punishmentMessages = [];
@@ -217,6 +231,11 @@ class PlayerWarn extends PluginBase {
 				}
 			}
 		}
+
+		$punishmentMessages['kick'] ??= TextFormat::colorize('&cYou have been kicked for reaching the warning limit.');
+		$punishmentMessages['ban'] ??= TextFormat::colorize('&cYou have been banned for reaching the warning limit.');
+		$punishmentMessages['ban-ip'] ??= TextFormat::colorize('&cYour IP address has been banned for reaching the warning limit.');
+		$punishmentMessages['tempban'] ??= TextFormat::colorize('&cYou have been temporarily banned for reaching the warning limit.');
 
 		$this->punishmentService = new PunishmentService(
 			$this,
@@ -243,9 +262,6 @@ class PlayerWarn extends PluginBase {
 				$this->getLogger()->warning('Discord enabled but webhook URL is invalid. Disabling Discord integration.');
 			}
 		}
-
-		$this->pendingPunishmentManager = new PendingPunishmentManager();
-		$this->warningTracker = new WarningTracker();
 	}
 
 	/**
@@ -318,6 +334,10 @@ class PlayerWarn extends PluginBase {
 
 	public function getPunishmentType() : PunishmentType {
 		return $this->punishmentType;
+	}
+
+	public function getTempbanDuration() : ?DateTimeImmutable {
+		return $this->tempbanDuration;
 	}
 
 	public function isDiscordEnabled() : bool {

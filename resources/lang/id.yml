@@ -44,12 +44,12 @@ broadcast:
   player-warned: "&d{player}&e telah diperingatkan karena: &d{reason}&e oleh &d{sender}"
 
 # Pesan perintah warns
-# Placeholder: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}
+# Placeholder: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}
 warns:
   console-specify-player: "&cHarap tentukan nama pemain saat menggunakan perintah ini dari konsol."
   no-warnings: "&cTidak ada peringatan ditemukan untuk {player}."
   header: "&bPeringatan untuk {player} (Jumlah: {count}):"
-  entry: "&7\n- &eID: {id} &e| Waktu: &f{timestamp} &e| Alasan: &f{reason} &e| Sumber: &f{source} &e| Kedaluwarsa: &f{expiration}"
+  entry: "&7{line}- &eID: {id} &e| Waktu: &f{timestamp} &e| Alasan: &f{reason} &e| Sumber: &f{source} &e| Kedaluwarsa: &f{expiration}"
 
 # Pesan perintah clearwarns
 # Placeholder: {player}, {count}

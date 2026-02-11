@@ -19,6 +19,7 @@ use Symfony\Component\Filesystem\Path;
 use function array_merge;
 use function is_array;
 use function is_string;
+use function str_replace;
 use function strtr;
 
 class MessageManager {
@@ -52,6 +53,8 @@ class MessageManager {
 
 			$message = strtr($message, $replacements);
 		}
+
+		$message = str_replace('{line}', "\n", $message);
 
 		return TextFormat::colorize($message);
 	}

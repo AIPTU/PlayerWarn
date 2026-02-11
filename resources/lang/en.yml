@@ -44,12 +44,12 @@ broadcast:
   player-warned: "&d{player}&e has been warned for: &d{reason}&e by &d{sender}"
 
 # Warns command messages
-# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}
+# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}
 warns:
   console-specify-player: "&cPlease specify a player name when using this command from the console."
   no-warnings: "&cNo warnings found for {player}."
   header: "&bWarnings for {player} (Count: {count}):"
-  entry: "&7\n- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
+  entry: "&7{line}- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
 
 # Clear warns command messages
 # Placeholders: {player}, {count}
@@ -74,7 +74,7 @@ editwarn:
   reason-updated: "&aSuccessfully updated warning ID {id} reason to: {reason}"
   expiration-updated: "&aSuccessfully updated warning ID {id} expiration to: {expiration}"
   not-found: "&cWarning ID {id} not found."
-  unknown-field: "&cUnknown field. Use \"reason\" or \"expiration\"."
+  unknown-field: '&cUnknown field. Use "reason" or "expiration".'
   invalid-duration: "&cInvalid duration format: {error}"
 
 # List warns command messages

@@ -19,7 +19,6 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function count;
 use function implode;
 use function str_repeat;
@@ -34,10 +33,11 @@ class ListWarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'listwarns',
-			'View all players with warnings',
-			'/listwarns',
+			$msg->get('command.listwarns.description'),
+			$msg->get('command.listwarns.usage'),
 		);
 		$this->setPermission('playerwarn.command.listwarns');
 	}
@@ -47,10 +47,12 @@ class ListWarnsCommand extends Command implements PluginOwned {
 			return false;
 		}
 
+		$msg = $this->plugin->getMessageManager();
+
 		$this->plugin->getProvider()->getAllPlayersWithWarnings(
-			function (array $playersData) use ($sender) : void {
+			function (array $playersData) use ($sender, $msg) : void {
 				if (count($playersData) === 0) {
-					$sender->sendMessage(TextFormat::YELLOW . 'No players have any warnings.');
+					$sender->sendMessage($msg->get('listwarns.no-players'));
 					return;
 				}
 
@@ -62,9 +64,12 @@ class ListWarnsCommand extends Command implements PluginOwned {
 					$totalWarnings += $data['count'];
 				}
 
-				$sender->sendMessage(TextFormat::GOLD . '========== Players with Warnings ==========');
-				$sender->sendMessage(TextFormat::AQUA . "Total Players: {$totalPlayers} | Total Warnings: {$totalWarnings}");
-				$sender->sendMessage(TextFormat::GRAY . str_repeat('-', 43));
+				$sender->sendMessage($msg->get('listwarns.header'));
+				$sender->sendMessage($msg->get('listwarns.summary', [
+					'total_players' => (string) $totalPlayers,
+					'total_warnings' => (string) $totalWarnings,
+				]));
+				$sender->sendMessage(str_repeat('-', 43));
 
 				foreach ($playersData as $playerData) {
 					$playerName = $playerData['player'];
@@ -75,20 +80,19 @@ class ListWarnsCommand extends Command implements PluginOwned {
 
 					$warningIds = implode(', ', $playerData['warning_ids']);
 
-					$sender->sendMessage(
-						TextFormat::YELLOW . $playerName .
-						TextFormat::GRAY . ' - ' .
-						TextFormat::RED . $warningCount .
-						TextFormat::GRAY . ' warning' . ($warningCount > 1 ? 's' : '') .
-						TextFormat::DARK_GRAY . ' (Last: ' . $timeAgo . ')' .
-						TextFormat::YELLOW . 'IDs: ' . $warningIds
-					);
+					$sender->sendMessage($msg->get('listwarns.entry', [
+						'player' => $playerName,
+						'count' => (string) $warningCount,
+						'plural' => $warningCount > 1 ? 's' : '',
+						'last_warning' => $timeAgo,
+						'ids' => $warningIds,
+					]));
 				}
 
-				$sender->sendMessage(TextFormat::GOLD . str_repeat('=', 43));
+				$sender->sendMessage($msg->get('listwarns.footer'));
 			},
-			function (\Throwable $error) use ($sender) : void {
-				$sender->sendMessage(TextFormat::RED . 'Failed to fetch warnings list: ' . $error->getMessage());
+			function (\Throwable $error) use ($sender, $msg) : void {
+				$sender->sendMessage($msg->get('error.failed-fetch-list', ['error' => $error->getMessage()]));
 			}
 		);
 

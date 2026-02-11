@@ -1,0 +1,124 @@
+# PlayerWarn - Bahasa Indonesia Language File
+# Anda dapat menggunakan kode warna dengan "§" atau "&" sebelum kode warna.
+# Placeholder yang tersedia ditampilkan di komentar di atas setiap pesan.
+
+# Deskripsi perintah
+command:
+  warn:
+    description: "Memberikan peringatan kepada pemain"
+    usage: "/warn <pemain> <alasan> [durasi]"
+  warns:
+    description: "Melihat peringatan untuk seorang pemain"
+    usage: "/warns [pemain]"
+  clearwarns:
+    description: "Menghapus semua peringatan untuk seorang pemain"
+    usage: "/clearwarns <pemain>"
+  delwarn:
+    description: "Menghapus peringatan tertentu"
+    usage: "/delwarn <pemain> <id>"
+  editwarn:
+    description: "Mengedit alasan atau kedaluwarsa peringatan pemain"
+    usage: "/editwarn <pemain> <id> <bidang> <nilai...>"
+  listwarns:
+    description: "Melihat semua pemain yang memiliki peringatan"
+    usage: "/listwarns"
+
+# Pesan perintah warn
+# Placeholder: {player}, {reason}, {sender}, {id}, {count}, {expiration}
+warn:
+  player-not-found: "&cNama pemain tidak valid. Pemain belum pernah bermain sebelumnya."
+  cannot-warn: "&cAnda tidak dapat memperingatkan pemain ini."
+  cannot-warn-bypass: "&cAnda tidak dapat memperingatkan pemain ini (memiliki izin bypass)."
+  invalid-duration: "&cFormat durasi tidak valid: {error}"
+  warned-player: "&eAnda telah diperingatkan oleh &b{sender}&e karena: &b{reason}"
+  warned-player-expiration: "&ePeringatan akan {expiration}"
+  warned-sender: "&bPemain &e{player}&b telah diperingatkan karena: &e{reason}&b (ID Peringatan: &e{id}&b)"
+  warned-sender-expiration: "&bPeringatan akan {expiration}"
+  warned-sender-count: "&bPemain &e{player}&b sekarang memiliki total &e{count}&b peringatan."
+  limit-reached: "&cPemain &e{player}&c telah mencapai batas peringatan dan akan dihukum."
+  offline-pending: "&ePemain &b{player}&e sedang offline. Hukuman akan diterapkan saat mereka bergabung kembali."
+
+# Pesan siaran
+# Placeholder: {player}, {reason}, {sender}
+broadcast:
+  player-warned: "&d{player}&e telah diperingatkan karena: &d{reason}&e oleh &d{sender}"
+
+# Pesan perintah warns
+# Placeholder: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}
+warns:
+  console-specify-player: "&cHarap tentukan nama pemain saat menggunakan perintah ini dari konsol."
+  no-warnings: "&cTidak ada peringatan ditemukan untuk {player}."
+  header: "&bPeringatan untuk {player} (Jumlah: {count}):"
+  entry: "&7\n- &eID: {id} &e| Waktu: &f{timestamp} &e| Alasan: &f{reason} &e| Sumber: &f{source} &e| Kedaluwarsa: &f{expiration}"
+
+# Pesan perintah clearwarns
+# Placeholder: {player}, {count}
+clearwarns:
+  cleared: "&aMenghapus {count} peringatan untuk {player}."
+  no-warnings: "&eTidak ada peringatan ditemukan untuk {player}."
+
+# Pesan perintah delwarn
+# Placeholder: {player}, {id}
+delwarn:
+  id-must-be-number: "&cID peringatan harus berupa angka."
+  deleted: "&aBerhasil menghapus peringatan ID {id} untuk pemain {player}."
+  not-found: "&cPeringatan ID {id} tidak ditemukan."
+
+# Pesan perintah editwarn
+# Placeholder: {id}, {reason}, {expiration}, {error}
+editwarn:
+  usage: "&cPenggunaan: /editwarn <pemain> <id> <reason|expiration> <nilai...>"
+  id-must-be-number: "&cID peringatan harus berupa angka."
+  player-not-found: "&cNama pemain tidak valid. Pemain belum pernah bermain sebelumnya."
+  reason-empty: "&cAlasan tidak boleh kosong."
+  reason-updated: "&aBerhasil memperbarui alasan peringatan ID {id} menjadi: {reason}"
+  expiration-updated: "&aBerhasil memperbarui kedaluwarsa peringatan ID {id} menjadi: {expiration}"
+  not-found: "&cPeringatan ID {id} tidak ditemukan."
+  unknown-field: '&cBidang tidak dikenal. Gunakan "reason" atau "expiration".'
+  invalid-duration: "&cFormat durasi tidak valid: {error}"
+
+# Pesan perintah listwarns
+# Placeholder: {total_players}, {total_warnings}, {player}, {count}, {last_warning}, {ids}
+listwarns:
+  no-players: "&eTidak ada pemain yang memiliki peringatan."
+  header: "&6========== Pemain dengan Peringatan =========="
+  summary: "&bTotal Pemain: {total_players} | Total Peringatan: {total_warnings}"
+  entry: "&e{player}&7 - &c{count}&7 peringatan{plural}&8 (Terakhir: {last_warning})&eID: {ids}"
+  footer: "&6==============================================="
+
+# Pesan saat pemain bergabung
+# Placeholder: {count}
+join:
+  new-warnings: "&eAnda telah menerima {count} peringatan baru. Harap perhatikan perilaku Anda."
+  active-warnings: "&cAnda memiliki {count} peringatan aktif. Harap perhatikan perilaku Anda."
+  no-warnings: "&aAnda tidak memiliki peringatan aktif. Pertahankan perilaku baik Anda!"
+
+# Teks kedaluwarsa
+# Placeholder: {duration}, {date}
+expiration:
+  never: "tidak pernah kedaluwarsa"
+  until: "sampai {duration} ({date})"
+
+# Pesan hukuman
+# Placeholder: {player}, {delay}
+punishment:
+  warning-message: "&cAnda telah mencapai batas peringatan. Anda akan dihukum dalam {delay} detik."
+  kick: "&cAnda telah dikeluarkan karena mencapai batas peringatan."
+  ban: "&cAnda telah diblokir karena mencapai batas peringatan."
+  ban-ip: "&cAlamat IP Anda telah diblokir karena mencapai batas peringatan."
+  tempban: "&cAnda telah diblokir sementara karena mencapai batas peringatan."
+
+# Pesan peringatan kedaluwarsa
+# Placeholder: {reason}
+expired:
+  player-notify: "&ePeringatan Anda telah kedaluwarsa: {reason}"
+
+# Pesan error
+error:
+  failed-warning-count: "&cGagal mendapatkan jumlah peringatan: {error}"
+  failed-add-warning: "&cGagal menambahkan peringatan: {error}"
+  failed-fetch-warnings: "&cGagal mengambil peringatan: {error}"
+  failed-clear-warnings: "&cGagal menghapus peringatan: {error}"
+  failed-delete-warning: "&cGagal menghapus peringatan: {error}"
+  failed-update-warning: "&cGagal memperbarui peringatan: {error}"
+  failed-fetch-list: "&cGagal mengambil daftar peringatan: {error}"

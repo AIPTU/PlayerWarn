@@ -20,7 +20,6 @@ use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\utils\TextFormat;
 
 class EventListener implements Listener {
 	public function __construct(
@@ -53,29 +52,25 @@ class EventListener implements Listener {
 		$this->plugin->getProvider()->getWarningCount(
 			$playerName,
 			function (int $currentWarningCount) use ($player, $playerName) : void {
+				$msg = $this->plugin->getMessageManager();
 				$tracker = $this->plugin->getWarningTracker();
 				$lastWarningCount = $tracker->getLastCount($playerName);
 
 				if ($currentWarningCount > $lastWarningCount) {
 					$newWarningCount = $currentWarningCount - $lastWarningCount;
-					$player->sendMessage(
-						TextFormat::YELLOW .
-						"You have received {$newWarningCount} new warning(s). Please take note of your behavior."
-					);
+					$player->sendMessage($msg->get('join.new-warnings', [
+						'count' => (string) $newWarningCount,
+					]));
 				}
 
 				$tracker->setLastCount($playerName, $currentWarningCount);
 
 				if ($currentWarningCount > 0) {
-					$player->sendMessage(
-						TextFormat::RED .
-						"You have {$currentWarningCount} active warning(s). Please take note of your behavior."
-					);
+					$player->sendMessage($msg->get('join.active-warnings', [
+						'count' => (string) $currentWarningCount,
+					]));
 				} else {
-					$player->sendMessage(
-						TextFormat::GREEN .
-						'You have no active warnings. Keep up the good behavior!'
-					);
+					$player->sendMessage($msg->get('join.no-warnings'));
 				}
 			},
 			function (\Throwable $error) use ($playerName) : void {

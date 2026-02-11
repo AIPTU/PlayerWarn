@@ -21,7 +21,6 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function array_shift;
 use function count;
 use function implode;
@@ -37,10 +36,11 @@ class EditWarnCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'editwarn',
-			'Edit a player\'s warning reason or expiration',
-			'/editwarn <player> <id> <field> <value...>',
+			$msg->get('command.editwarn.description'),
+			$msg->get('command.editwarn.usage'),
 		);
 		$this->setPermission('playerwarn.command.editwarn');
 	}
@@ -50,8 +50,10 @@ class EditWarnCommand extends Command implements PluginOwned {
 			return false;
 		}
 
+		$msg = $this->plugin->getMessageManager();
+
 		if (count($args) < 4) {
-			$sender->sendMessage(TextFormat::RED . 'Usage: /editwarn <player> <id> <reason|expiration> <value...>');
+			$sender->sendMessage($msg->get('editwarn.usage'));
 			return false;
 		}
 
@@ -60,7 +62,7 @@ class EditWarnCommand extends Command implements PluginOwned {
 		$field = strtolower((string) array_shift($args));
 
 		if (!is_numeric($warnIdStr)) {
-			$sender->sendMessage(TextFormat::RED . 'Warning ID must be a number.');
+			$sender->sendMessage($msg->get('editwarn.id-must-be-number'));
 			return false;
 		}
 
@@ -68,14 +70,14 @@ class EditWarnCommand extends Command implements PluginOwned {
 
 		$server = $this->plugin->getServer();
 		if (!$server->hasOfflinePlayerData($playerName)) {
-			$sender->sendMessage(TextFormat::RED . 'Invalid player username. The player has not played before.');
+			$sender->sendMessage($msg->get('editwarn.player-not-found'));
 			return false;
 		}
 
 		if ($field === 'reason') {
 			$newReason = implode(' ', $args);
 			if ($newReason === '') {
-				$sender->sendMessage(TextFormat::RED . 'Reason cannot be empty.');
+				$sender->sendMessage($msg->get('editwarn.reason-empty'));
 				return false;
 			}
 
@@ -92,7 +94,7 @@ class EditWarnCommand extends Command implements PluginOwned {
 					$newExpiration = Utils::parseDurationString($durationStr);
 				}
 			} catch (InvalidArgumentException $e) {
-				$sender->sendMessage(TextFormat::RED . 'Invalid duration format: ' . $e->getMessage());
+				$sender->sendMessage($msg->get('editwarn.invalid-duration', ['error' => $e->getMessage()]));
 				return false;
 			}
 
@@ -100,7 +102,7 @@ class EditWarnCommand extends Command implements PluginOwned {
 			return true;
 		}
 
-		$sender->sendMessage(TextFormat::RED . 'Unknown field. Use "reason" or "expiration".');
+		$sender->sendMessage($msg->get('editwarn.unknown-field'));
 		return false;
 	}
 
@@ -110,21 +112,24 @@ class EditWarnCommand extends Command implements PluginOwned {
 		string $newReason,
 		CommandSender $sender
 	) : void {
+		$msg = $this->plugin->getMessageManager();
+
 		$this->plugin->getProvider()->updateWarnReason(
 			$warnId,
 			strtolower($playerName),
 			$newReason,
-			function (int $affectedRows) use ($sender, $warnId, $newReason) : void {
+			function (int $affectedRows) use ($sender, $warnId, $newReason, $msg) : void {
 				if ($affectedRows > 0) {
-					$sender->sendMessage(
-						TextFormat::GREEN . "Successfully updated warning ID {$warnId} reason to: {$newReason}"
-					);
+					$sender->sendMessage($msg->get('editwarn.reason-updated', [
+						'id' => (string) $warnId,
+						'reason' => $newReason,
+					]));
 				} else {
-					$sender->sendMessage(TextFormat::RED . "Warning ID {$warnId} not found.");
+					$sender->sendMessage($msg->get('editwarn.not-found', ['id' => (string) $warnId]));
 				}
 			},
-			function (\Throwable $error) use ($sender) : void {
-				$sender->sendMessage(TextFormat::RED . 'Failed to update warning: ' . $error->getMessage());
+			function (\Throwable $error) use ($sender, $msg) : void {
+				$sender->sendMessage($msg->get('error.failed-update-warning', ['error' => $error->getMessage()]));
 			}
 		);
 	}
@@ -135,6 +140,7 @@ class EditWarnCommand extends Command implements PluginOwned {
 		?DateTimeImmutable $newExpiration,
 		CommandSender $sender
 	) : void {
+		$msg = $this->plugin->getMessageManager();
 		$expirationStr = $newExpiration !== null
 			? $newExpiration->format(Utils::DATE_TIME_FORMAT)
 			: 'Never';
@@ -143,17 +149,18 @@ class EditWarnCommand extends Command implements PluginOwned {
 			$warnId,
 			strtolower($playerName),
 			$newExpiration,
-			function (int $affectedRows) use ($sender, $warnId, $expirationStr) : void {
+			function (int $affectedRows) use ($sender, $warnId, $expirationStr, $msg) : void {
 				if ($affectedRows > 0) {
-					$sender->sendMessage(
-						TextFormat::GREEN . "Successfully updated warning ID {$warnId} expiration to: {$expirationStr}"
-					);
+					$sender->sendMessage($msg->get('editwarn.expiration-updated', [
+						'id' => (string) $warnId,
+						'expiration' => $expirationStr,
+					]));
 				} else {
-					$sender->sendMessage(TextFormat::RED . "Warning ID {$warnId} not found.");
+					$sender->sendMessage($msg->get('editwarn.not-found', ['id' => (string) $warnId]));
 				}
 			},
-			function (\Throwable $error) use ($sender) : void {
-				$sender->sendMessage(TextFormat::RED . 'Failed to update warning: ' . $error->getMessage());
+			function (\Throwable $error) use ($sender, $msg) : void {
+				$sender->sendMessage($msg->get('error.failed-update-warning', ['error' => $error->getMessage()]));
 			}
 		);
 	}

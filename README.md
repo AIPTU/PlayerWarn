@@ -17,6 +17,7 @@ A PocketMine-MP plugin that allows server administrators to issue warnings to pl
 8. **Update Notifications**: Optionally notify administrators of plugin updates.
 9. **Pending Punishments**: Queue pending punishments for offline players, ensuring they are applied upon login.
 10. **Database Support**: Uses SQLite (default) or MySQL for warning storage with async operations.
+11. **Multi-Language Support**: Fully customizable messages with support for multiple languages (default: English and Indonesian).
 
 ## Default Config
 
@@ -24,16 +25,21 @@ A PocketMine-MP plugin that allows server administrators to issue warnings to pl
 # PlayerWarn Configuration
 
 # Do not change this (Only for internal use)!
-config-version: 2.0
+config-version: 3.0
 
 # Enable or disable the auto update checker notifier.
 update_notifier: true
+
+# Language setting
+# Available languages: "en" (English), "id" (Indonesian)
+# You can add your own language by creating a new file in the "lang" folder.
+language: en
 
 # Warning settings
 warning:
   # The `expiration_check_interval` option specifies the time in seconds after which a warning expires.
   # Set to a positive integer. Default value: 180 (3 minutes)
-  expiration_check_interval: 180 
+  expiration_check_interval: 180
 
   # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.
   # Set to a positive integer. Default value: 3
@@ -45,12 +51,6 @@ warning:
   # Default value: 5
   delay: 5
 
-  # The `message` option specifies the warning message template to be sent to the player.
-  # The `{delay}` placeholder will be replaced with the actual delay time in seconds.
-  # You can use color codes by using "§" or "&" before the color code.
-  # Default value: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
-  message: "&cYou have reached the warning limit. You will be punished in {delay} seconds."
-
   # The `broadcast_to_everyone` option enables or disables broadcasting warning events to all players on the server.
   # Set to true to enable broadcasting, or false to disable it.
   # When enabled, all players will be notified when a warning is issued.
@@ -60,7 +60,7 @@ warning:
 # Punishment settings
 punishment:
   # The `type` option specifies the type of punishment to apply when a player reaches the warning limit.
-  # Valid options are "kick", "ban", "ban-ip", and "none".
+  # Valid options are "kick", "ban", "ban-ip", "tempban", and "none".
   # - "kick": Kicks the player from the server when the warning limit is reached.
   # - "ban": Bans the player from the server when the warning limit is reached.
   # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
@@ -69,14 +69,8 @@ punishment:
   # Default value is "none".
   type: none
 
-  # The `tempban` option specifies the duration of the temporary ban.
-  # This is only used if `type` is set to "ban" and you want it to be temporary (handled in command usually, but here for global setting if expanded).
-  # Actually, for PlayerWarn, tempban is usually a specific punishment type or handled via arguments.
-  # Let's add "tempban" as a valid type above.
-  # Valid options are "kick", "ban", "ban-ip", "tempban", and "none".
-
-  # Duration for "tempban" punishment type (e.g., "1 day", "12 hours", "30 minutes").
-  tempban_duration: "1 day"
+  # Duration for "tempban" punishment type (e.g., "1d", "12h", "1d12h30m").
+  tempban_duration: "1d"
 
 # Database settings
 database:
@@ -98,20 +92,6 @@ database:
   # The maximum number of simultaneous SQL queries
   # Recommended: 1 for sqlite, 2 for MySQL. You may want to further increase this value if your MySQL connection is very slow.
   worker-limit: 1
-
-  # Custom punishment messages for each type of punishment.
-  # These messages will be shown to the player when the punishment is applied.
-  # You can use color codes by using "§" or "&" before the color code.
-  # Note: Custom messages are only applicable when the `type` is not "none".
-  messages:
-    # Custom message for the "kick" punishment type.
-    kick: "&cYou have been kicked for reaching the warning limit."
-
-    # Custom message for the "ban" punishment type.
-    ban: "&cYou have been banned for reaching the warning limit."
-
-    # Custom message for the "ban-ip" punishment type.
-    ban-ip: "&cYour IP address has been banned for reaching the warning limit."
 
 # Discord integration settings
 discord:
@@ -139,6 +119,24 @@ For tags reference see [TAGS_REFERENCE.md](resources/webhooks/TAGS_REFERENCE.md)
   1. Open the **config.yml** file.
   1. Find the **discord** section and change **enabled** to **true**.
   1. Paste the webhook URL under **webhook_url**.
+
+## Custom Messages & Languages
+
+PlayerWarn supports multiple languages and fully customizable messages. By default, English (`en`) and Indonesian (`id`) are included.
+
+### Changing the Language
+
+1. Open `config.yml`.
+2. Change the `language` setting to your desired language code (e.g., `language: id`).
+3. Restart the server.
+
+### Adding a New Language
+
+1. Navigate to the `plugin_data/PlayerWarn/lang/` directory.
+2. Copy `en.yml` and rename it to your language code (e.g., `es.yml` for Spanish).
+3. Open the new file and translate the messages.
+4. Update `config.yml` to use your new language code (e.g., `language: es`).
+5. Restart the server.
 
 ## Commands
 

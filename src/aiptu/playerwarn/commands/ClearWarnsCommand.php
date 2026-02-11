@@ -19,7 +19,6 @@ use pocketmine\command\CommandSender;
 use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function count;
 
 class ClearWarnsCommand extends Command implements PluginOwned {
@@ -31,10 +30,11 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'clearwarns',
-			'Clear warnings for a player',
-			'/clearwarns <player>',
+			$msg->get('command.clearwarns.description'),
+			$msg->get('command.clearwarns.usage'),
 		);
 		$this->setPermission('playerwarn.command.clearwarns');
 	}
@@ -49,15 +49,19 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0];
+		$msg = $this->plugin->getMessageManager();
 
-		$this->plugin->getProvider()->removeWarns($playerName, function (int $count) use ($sender, $playerName) : void {
+		$this->plugin->getProvider()->removeWarns($playerName, function (int $count) use ($sender, $playerName, $msg) : void {
 			if ($count > 0) {
-				$sender->sendMessage(TextFormat::GREEN . "Cleared {$count} warning(s) for {$playerName}.");
+				$sender->sendMessage($msg->get('clearwarns.cleared', [
+					'count' => (string) $count,
+					'player' => $playerName,
+				]));
 			} else {
-				$sender->sendMessage(TextFormat::YELLOW . "No warnings found for {$playerName}.");
+				$sender->sendMessage($msg->get('clearwarns.no-warnings', ['player' => $playerName]));
 			}
-		}, function (\Throwable $error) use ($sender) : void {
-			$sender->sendMessage(TextFormat::RED . 'Failed to clear warnings: ' . $error->getMessage());
+		}, function (\Throwable $error) use ($sender, $msg) : void {
+			$sender->sendMessage($msg->get('error.failed-clear-warnings', ['error' => $error->getMessage()]));
 		});
 
 		return true;

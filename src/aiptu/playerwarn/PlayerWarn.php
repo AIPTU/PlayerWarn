@@ -32,7 +32,6 @@ use JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
-use pocketmine\utils\TextFormat;
 use poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -49,13 +48,14 @@ use const FILTER_VALIDATE_URL;
 use const JSON_THROW_ON_ERROR;
 
 class PlayerWarn extends PluginBase {
-	private const float CONFIG_VERSION = 2.0;
+	private const float CONFIG_VERSION = 3.0;
 
 	private WarnProvider $warnProvider;
 	private PunishmentService $punishmentService;
 	private ?DiscordService $discordService = null;
 	private PendingPunishmentManager $pendingPunishmentManager;
 	private WarningTracker $warningTracker;
+	private MessageManager $messageManager;
 
 	private bool $updateNotifierEnabled;
 	private int $expirationCheckInterval;
@@ -217,33 +217,19 @@ class PlayerWarn extends PluginBase {
 			$delaySeconds = 5;
 		}
 
-		$warningMessage = $config->getNested('warning.message', '&cYou have reached the warning limit. You will be punished in {delay} seconds.');
-		if (!is_string($warningMessage)) {
-			$warningMessage = '&cYou have reached the warning limit. You will be punished in {delay} seconds.';
+		$language = $config->get('language', 'en');
+		if (!is_string($language)) {
+			$language = 'en';
 		}
 
-		$punishmentMessages = [];
-		$messagesConfig = $config->getNested('punishment.messages', []);
-		if (is_array($messagesConfig)) {
-			foreach (['kick', 'ban', 'ban-ip', 'tempban'] as $type) {
-				if (isset($messagesConfig[$type]) && is_string($messagesConfig[$type])) {
-					$punishmentMessages[$type] = TextFormat::colorize($messagesConfig[$type]);
-				}
-			}
-		}
-
-		$punishmentMessages['kick'] ??= TextFormat::colorize('&cYou have been kicked for reaching the warning limit.');
-		$punishmentMessages['ban'] ??= TextFormat::colorize('&cYou have been banned for reaching the warning limit.');
-		$punishmentMessages['ban-ip'] ??= TextFormat::colorize('&cYour IP address has been banned for reaching the warning limit.');
-		$punishmentMessages['tempban'] ??= TextFormat::colorize('&cYou have been temporarily banned for reaching the warning limit.');
+		$this->messageManager = new MessageManager($this, $language);
 
 		$this->punishmentService = new PunishmentService(
 			$this,
 			$this->getServer(),
 			$this->getLogger(),
 			$delaySeconds,
-			TextFormat::colorize($warningMessage),
-			$punishmentMessages
+			$this->messageManager
 		);
 
 		$discordEnabled = $config->getNested('discord.enabled', false);
@@ -346,5 +332,9 @@ class PlayerWarn extends PluginBase {
 
 	public function isBroadcastToEveryoneEnabled() : bool {
 		return $this->broadcastToEveryone;
+	}
+
+	public function getMessageManager() : MessageManager {
+		return $this->messageManager;
 	}
 }

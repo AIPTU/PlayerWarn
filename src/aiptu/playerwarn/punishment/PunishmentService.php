@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace aiptu\playerwarn\punishment;
 
 use aiptu\playerwarn\event\PlayerPunishmentEvent;
+use aiptu\playerwarn\MessageManager;
 use aiptu\playerwarn\task\DelayedPunishmentTask;
-use aiptu\playerwarn\utils\Utils;
 use DateTimeImmutable;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
@@ -27,8 +27,7 @@ class PunishmentService {
 		private Server $server,
 		private \AttachableLogger $logger,
 		private int $delaySeconds,
-		private string $warningMessage,
-		private array $punishmentMessages
+		private MessageManager $messageManager
 	) {}
 
 	public function scheduleDelayedPunishment(
@@ -48,7 +47,7 @@ class PunishmentService {
 			$this->delaySeconds * 20
 		);
 
-		$warningMessage = Utils::replaceVars($this->warningMessage, [
+		$warningMessage = $this->messageManager->get('punishment.warning-message', [
 			'delay' => (string) $this->delaySeconds,
 		]);
 		$player->sendMessage($warningMessage);
@@ -74,7 +73,7 @@ class PunishmentService {
 			return;
 		}
 
-		$message = $this->punishmentMessages[$type->value] ?? "You have been {$type->value}.";
+		$message = $this->messageManager->get("punishment.{$type->value}");
 
 		try {
 			match ($type) {

@@ -19,7 +19,6 @@ use pocketmine\command\CommandSender;
 use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function count;
 use function is_numeric;
 
@@ -32,10 +31,11 @@ class DeleteWarnCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'delwarn',
-			'Delete a specific warning',
-			'/delwarn <player> <id>',
+			$msg->get('command.delwarn.description'),
+			$msg->get('command.delwarn.usage'),
 		);
 		$this->setPermission('playerwarn.command.delwarn');
 	}
@@ -50,21 +50,26 @@ class DeleteWarnCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0];
+		$msg = $this->plugin->getMessageManager();
+
 		if (!is_numeric($args[1])) {
-			$sender->sendMessage(TextFormat::RED . 'Warning ID must be a number.');
+			$sender->sendMessage($msg->get('delwarn.id-must-be-number'));
 			return false;
 		}
 
 		$id = (int) $args[1];
 
-		$this->plugin->getProvider()->removeWarnById($id, $playerName, function (int $affectedRows) use ($sender, $playerName, $id) : void {
+		$this->plugin->getProvider()->removeWarnById($id, $playerName, function (int $affectedRows) use ($sender, $playerName, $id, $msg) : void {
 			if ($affectedRows > 0) {
-				$sender->sendMessage(TextFormat::GREEN . "Successfully deleted warning ID {$id} for player {$playerName}.");
+				$sender->sendMessage($msg->get('delwarn.deleted', [
+					'id' => (string) $id,
+					'player' => $playerName,
+				]));
 			} else {
-				$sender->sendMessage(TextFormat::RED . "Warning ID {$id} not found.");
+				$sender->sendMessage($msg->get('delwarn.not-found', ['id' => (string) $id]));
 			}
-		}, function (\Throwable $error) use ($sender) : void {
-			$sender->sendMessage(TextFormat::RED . 'Failed to delete warning: ' . $error->getMessage());
+		}, function (\Throwable $error) use ($sender, $msg) : void {
+			$sender->sendMessage($msg->get('error.failed-delete-warning', ['error' => $error->getMessage()]));
 		});
 
 		return true;

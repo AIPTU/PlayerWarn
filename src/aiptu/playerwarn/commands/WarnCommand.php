@@ -24,7 +24,6 @@ use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function array_pop;
 use function array_shift;
 use function array_slice;
@@ -40,10 +39,11 @@ class WarnCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'warn',
-			'Warn a player',
-			'/warn <player> <reason> [duration]',
+			$msg->get('command.warn.description'),
+			$msg->get('command.warn.usage'),
 		);
 		$this->setPermission('playerwarn.command.warn');
 	}
@@ -61,20 +61,22 @@ class WarnCommand extends Command implements PluginOwned {
 		$server = $this->plugin->getServer();
 
 		if (!$server->hasOfflinePlayerData($playerName)) {
-			$sender->sendMessage(TextFormat::RED . 'Invalid player username. The player has not played before.');
+			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.player-not-found'));
 			return false;
 		}
 
 		try {
 			[$playerName, $reason, $expiration] = self::parseArguments($args, $sender);
 		} catch (InvalidArgumentException $e) {
-			$sender->sendMessage(TextFormat::RED . $e->getMessage());
+			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.invalid-duration', [
+				'error' => $e->getMessage(),
+			]));
 			return false;
 		}
 
 		$target = $server->getPlayerExact($playerName);
 		if ($target instanceof Player && $target->hasPermission('playerwarn.bypass')) {
-			$sender->sendMessage(TextFormat::RED . 'You cannot warn this player.');
+			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.cannot-warn'));
 			return true;
 		}
 
@@ -83,7 +85,7 @@ class WarnCommand extends Command implements PluginOwned {
 			if ($offlinePlayer !== null) {
 				$offlinePlayerName = $offlinePlayer->getName();
 				if ($this->hasOfflineBypassPermission($offlinePlayerName)) {
-					$sender->sendMessage(TextFormat::RED . 'You cannot warn this player (has bypass permission).');
+					$sender->sendMessage($this->plugin->getMessageManager()->get('warn.cannot-warn-bypass'));
 					return true;
 				}
 			}
@@ -149,16 +151,20 @@ class WarnCommand extends Command implements PluginOwned {
 				$this->plugin->getProvider()->getWarningCount(
 					$entry->getPlayerName(),
 					function (int $count) use ($entry, $sender, $expiration) : void {
-						self::sendMessageToSender($entry, $sender, $expiration, $count);
+						$this->sendMessageToSender($entry, $sender, $expiration, $count);
 						$this->applyPotentialPunishment($entry, $sender, $count);
 					},
 					function (\Throwable $error) use ($sender) : void {
-						$sender->sendMessage(TextFormat::RED . 'Failed to get warning count: ' . $error->getMessage());
+						$sender->sendMessage($this->plugin->getMessageManager()->get('error.failed-warning-count', [
+							'error' => $error->getMessage(),
+						]));
 					}
 				);
 			},
 			function (\Throwable $error) use ($sender) : void {
-				$sender->sendMessage(TextFormat::RED . 'Failed to add warning: ' . $error->getMessage());
+				$sender->sendMessage($this->plugin->getMessageManager()->get('error.failed-add-warning', [
+					'error' => $error->getMessage(),
+				]));
 			}
 		);
 	}
@@ -173,55 +179,51 @@ class WarnCommand extends Command implements PluginOwned {
 			return;
 		}
 
-		$expirationText = self::formatExpiration($expiration);
+		$msg = $this->plugin->getMessageManager();
+		$expirationText = $this->formatExpiration($expiration);
 
-		$message = TextFormat::YELLOW . 'You have been warned by ' .
-			TextFormat::AQUA . $sender->getName() .
-			TextFormat::YELLOW . ' for: ' .
-			TextFormat::AQUA . $entry->getReason();
-
-		$player->sendMessage($message);
-		$player->sendMessage(
-			TextFormat::YELLOW . 'The warning will ' . $expirationText
-		);
+		$player->sendMessage($msg->get('warn.warned-player', [
+			'sender' => $sender->getName(),
+			'reason' => $entry->getReason(),
+		]));
+		$player->sendMessage($msg->get('warn.warned-player-expiration', [
+			'expiration' => $expirationText,
+		]));
 
 		if ($this->plugin->isBroadcastToEveryoneEnabled()) {
 			$this->plugin->getServer()->broadcastMessage(
-				TextFormat::LIGHT_PURPLE . $entry->getPlayerName() . TextFormat::YELLOW . ' has been warned for: ' .
-				TextFormat::LIGHT_PURPLE . $entry->getReason() . TextFormat::YELLOW . ' by ' . TextFormat::LIGHT_PURPLE . $sender->getName()
+				$msg->get('broadcast.player-warned', [
+					'player' => $entry->getPlayerName(),
+					'reason' => $entry->getReason(),
+					'sender' => $sender->getName(),
+				])
 			);
 		}
 	}
 
-	private static function sendMessageToSender(
+	private function sendMessageToSender(
 		WarnEntry $entry,
 		CommandSender $sender,
 		?DateTimeImmutable $expiration,
 		int $warningCount
 	) : void {
-		$expirationText = self::formatExpiration($expiration);
+		$msg = $this->plugin->getMessageManager();
+		$expirationText = $this->formatExpiration($expiration);
 
-		$sender->sendMessage(
-			TextFormat::AQUA . 'Player ' .
-			TextFormat::YELLOW . $entry->getPlayerName() .
-			TextFormat::AQUA . ' has been warned for: ' .
-			TextFormat::YELLOW . $entry->getReason() .
-			TextFormat::AQUA . ' (Warning ID: ' .
-			TextFormat::YELLOW . $entry->getId() .
-			TextFormat::AQUA . ')'
-		);
-		$sender->sendMessage(
-			TextFormat::AQUA . 'The warning will ' . $expirationText
-		);
+		$sender->sendMessage($msg->get('warn.warned-sender', [
+			'player' => $entry->getPlayerName(),
+			'reason' => $entry->getReason(),
+			'id' => (string) $entry->getId(),
+		]));
+		$sender->sendMessage($msg->get('warn.warned-sender-expiration', [
+			'expiration' => $expirationText,
+		]));
 
 		if ($warningCount > 0) {
-			$sender->sendMessage(
-				TextFormat::AQUA . 'Player ' .
-				TextFormat::YELLOW . $entry->getPlayerName() .
-				TextFormat::AQUA . ' now has a total of ' .
-				TextFormat::YELLOW . $warningCount .
-				TextFormat::AQUA . ' warning(s).'
-			);
+			$sender->sendMessage($msg->get('warn.warned-sender-count', [
+				'player' => $entry->getPlayerName(),
+				'count' => (string) $warningCount,
+			]));
 		}
 	}
 
@@ -242,11 +244,11 @@ class WarnCommand extends Command implements PluginOwned {
 			return;
 		}
 
-		$sender->sendMessage(
-			TextFormat::RED . 'Player ' .
-			TextFormat::YELLOW . $entry->getPlayerName() .
-			TextFormat::RED . ' has reached the warning limit and will be punished.'
-		);
+		$msg = $this->plugin->getMessageManager();
+
+		$sender->sendMessage($msg->get('warn.limit-reached', [
+			'player' => $entry->getPlayerName(),
+		]));
 
 		if ($player instanceof Player) {
 			$tempbanDuration = $this->plugin->getTempbanDuration();
@@ -265,23 +267,26 @@ class WarnCommand extends Command implements PluginOwned {
 				$sender->getName(),
 				$entry->getReason()
 			);
-			$sender->sendMessage(
-				TextFormat::YELLOW . 'Player ' .
-				TextFormat::AQUA . $entry->getPlayerName() .
-				TextFormat::YELLOW . ' is currently offline. The punishment will be applied when they rejoin.'
-			);
+			$sender->sendMessage($msg->get('warn.offline-pending', [
+				'player' => $entry->getPlayerName(),
+			]));
 		}
 	}
 
-	private static function formatExpiration(?DateTimeImmutable $expiration) : string {
+	private function formatExpiration(?DateTimeImmutable $expiration) : string {
+		$msg = $this->plugin->getMessageManager();
+
 		if ($expiration === null) {
-			return 'never expire';
+			return $msg->get('expiration.never');
 		}
 
 		$secondsRemaining = $expiration->getTimestamp() - (new DateTimeImmutable())->getTimestamp();
 		$duration = Utils::formatDuration($secondsRemaining);
 		$date = $expiration->format(Utils::DATE_TIME_FORMAT);
 
-		return "until {$duration} ({$date})";
+		return $msg->get('expiration.until', [
+			'duration' => $duration,
+			'date' => $date,
+		]);
 	}
 }

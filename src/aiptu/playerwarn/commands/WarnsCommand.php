@@ -20,7 +20,6 @@ use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function count;
 
 class WarnsCommand extends Command implements PluginOwned {
@@ -32,10 +31,11 @@ class WarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'warns',
-			'View warnings for a player',
-			'/warns [player]',
+			$msg->get('command.warns.description'),
+			$msg->get('command.warns.usage'),
 		);
 		$this->setPermission('playerwarn.command.warns');
 	}
@@ -45,36 +45,47 @@ class WarnsCommand extends Command implements PluginOwned {
 			return false;
 		}
 
+		$msg = $this->plugin->getMessageManager();
+
 		if (!$sender instanceof Player && !isset($args[0])) {
-			$sender->sendMessage(TextFormat::RED . 'Please specify a player name when using this command from the console.');
+			$sender->sendMessage($msg->get('warns.console-specify-player'));
 			return false;
 		}
 
 		$playerName = $args[0] ?? $sender->getName();
 
-		$this->plugin->getProvider()->getWarns($playerName, function (array $warns) use ($sender, $playerName) : void {
+		$this->plugin->getProvider()->getWarns($playerName, function (array $warns) use ($sender, $playerName, $msg) : void {
 			if (count($warns) === 0) {
-				$sender->sendMessage(TextFormat::RED . "No warnings found for {$playerName}.");
+				$sender->sendMessage($msg->get('warns.no-warnings', ['player' => $playerName]));
 				return;
 			}
 
 			$warningCount = count($warns);
 
-			$message = TextFormat::AQUA . "Warnings for {$playerName} (Count: {$warningCount}):";
+			$message = $msg->get('warns.header', [
+				'player' => $playerName,
+				'count' => (string) $warningCount,
+			]);
 			foreach ($warns as $warnEntry) {
 				$timestamp = $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT);
 				$reason = $warnEntry->getReason();
 				$source = $warnEntry->getSource();
 				$expiration = $warnEntry->getExpiration();
 				$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(Utils::DATE_TIME_FORMAT)})" : 'Never';
-				$id = $warnEntry->getId() ?? 'N/A';
+				$id = $warnEntry->getId();
 
-				$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . "ID: {$id} " . TextFormat::YELLOW . '| Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";
+				$message .= $msg->get('warns.entry', [
+					'id' => (string) $id,
+					'timestamp' => $timestamp,
+					'reason' => $reason,
+					'source' => $source,
+					'expiration' => $expirationString,
+				]);
 			}
 
 			$sender->sendMessage($message);
-		}, function (\Throwable $error) use ($sender) : void {
-			$sender->sendMessage(TextFormat::RED . 'Failed to fetch warnings: ' . $error->getMessage());
+		}, function (\Throwable $error) use ($sender, $msg) : void {
+			$sender->sendMessage($msg->get('error.failed-fetch-warnings', ['error' => $error->getMessage()]));
 		});
 
 		return true;

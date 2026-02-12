@@ -1,13 +1,22 @@
 # PlayerWarn Configuration
 
 # Do not change this (Only for internal use)!
-config-version: 1.0
+config-version: 3.0
 
 # Enable or disable the auto update checker notifier.
 update_notifier: true
 
+# Language setting
+# Available languages: "en" (English), "id" (Indonesian)
+# You can add your own language by creating a new file in the "lang" folder.
+language: en
+
 # Warning settings
 warning:
+  # The `expiration_check_interval` option specifies the time in seconds after which a warning expires.
+  # Set to a positive integer. Default value: 180 (3 minutes)
+  expiration_check_interval: 180
+
   # The `limit` option specifies the maximum number of warnings a player can receive before punishment is applied.
   # Set to a positive integer. Default value: 3
   limit: 3
@@ -18,36 +27,47 @@ warning:
   # Default value: 5
   delay: 5
 
-  # The `message` option specifies the warning message template to be sent to the player.
-  # The `{delay}` placeholder will be replaced with the actual delay time in seconds.
-  # You can use color codes by using "§" or "&" before the color code.
-  # Default value: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
-  message: '&cYou have reached the warning limit. You will be punished in {delay} seconds.'
+  # The `broadcast_to_everyone` option enables or disables broadcasting warning events to all players on the server.
+  # Set to true to enable broadcasting, or false to disable it.
+  # When enabled, all players will be notified when a warning is issued.
+  # Default value: true
+  broadcast_to_everyone: true
 
 # Punishment settings
 punishment:
   # The `type` option specifies the type of punishment to apply when a player reaches the warning limit.
-  # Valid options are "kick", "ban", "ban-ip", and "none".
+  # Valid options are "kick", "ban", "ban-ip", "tempban", and "none".
   # - "kick": Kicks the player from the server when the warning limit is reached.
   # - "ban": Bans the player from the server when the warning limit is reached.
   # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
+  # - "tempban": Temporarily bans the player from the server when the warning limit is reached.
   # - "none": No punishment will be applied when the warning limit is reached.
   # Default value is "none".
   type: none
 
-  # Custom punishment messages for each type of punishment.
-  # These messages will be shown to the player when the punishment is applied.
-  # You can use color codes by using "§" or "&" before the color code.
-  # Note: Custom messages are only applicable when the `type` is not "none".
-  messages:
-    # Custom message for the "kick" punishment type.
-    kick: '&cYou have been kicked for reaching the warning limit.'
+  # Duration for "tempban" punishment type (e.g., "1d", "12h", "1d12h30m").
+  tempban_duration: "1d"
 
-    # Custom message for the "ban" punishment type.
-    ban: '&cYou have been banned for reaching the warning limit.'
-    
-    # Custom message for the "ban-ip" punishment type.
-    ban-ip: '&cYour IP address has been banned for reaching the warning limit.'
+# Database settings
+database:
+  # The database type. "sqlite" and "mysql" are supported.
+  type: sqlite
+
+  # Edit these settings only if you choose "sqlite".
+  sqlite:
+    # The file name of the database in the plugin data folder.
+    # You can also put an absolute path here.
+    file: warnings.sqlite
+  # Edit these settings only if you choose "mysql".
+  mysql:
+    host: 127.0.0.1
+    # Avoid using the "root" user for security reasons.
+    username: root
+    password: ""
+    schema: your_schema
+  # The maximum number of simultaneous SQL queries
+  # Recommended: 1 for sqlite, 2 for MySQL. You may want to further increase this value if your MySQL connection is very slow.
+  worker-limit: 1
 
 # Discord integration settings
 discord:

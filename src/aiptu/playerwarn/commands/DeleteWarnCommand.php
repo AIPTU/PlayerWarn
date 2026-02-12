@@ -20,8 +20,9 @@ use pocketmine\command\utils\InvalidCommandSyntaxException;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
 use function count;
+use function is_numeric;
 
-class ClearWarnsCommand extends Command implements PluginOwned {
+class DeleteWarnCommand extends Command implements PluginOwned {
 	use PluginOwnedTrait {
 		__construct as setOwningPlugin;
 	}
@@ -32,11 +33,11 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 		$this->setOwningPlugin($plugin);
 		$msg = $plugin->getMessageManager();
 		parent::__construct(
-			'clearwarns',
-			$msg->get('command.clearwarns.description'),
-			$msg->get('command.clearwarns.usage'),
+			'delwarn',
+			$msg->get('command.delwarn.description'),
+			$msg->get('command.delwarn.usage'),
 		);
-		$this->setPermission('playerwarn.command.clearwarns');
+		$this->setPermission('playerwarn.command.delwarn');
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args) : bool {
@@ -44,24 +45,31 @@ class ClearWarnsCommand extends Command implements PluginOwned {
 			return false;
 		}
 
-		if (count($args) < 1) {
+		if (count($args) < 2) {
 			throw new InvalidCommandSyntaxException();
 		}
 
 		$playerName = $args[0];
 		$msg = $this->plugin->getMessageManager();
 
-		$this->plugin->getProvider()->removeWarns($playerName, function (int $count) use ($sender, $playerName, $msg) : void {
-			if ($count > 0) {
-				$sender->sendMessage($msg->get('clearwarns.cleared', [
-					'count' => (string) $count,
+		if (!is_numeric($args[1])) {
+			$sender->sendMessage($msg->get('delwarn.id-must-be-number'));
+			return false;
+		}
+
+		$id = (int) $args[1];
+
+		$this->plugin->getProvider()->removeWarnById($id, $playerName, function (int $affectedRows) use ($sender, $playerName, $id, $msg) : void {
+			if ($affectedRows > 0) {
+				$sender->sendMessage($msg->get('delwarn.deleted', [
+					'id' => (string) $id,
 					'player' => $playerName,
 				]));
 			} else {
-				$sender->sendMessage($msg->get('clearwarns.no-warnings', ['player' => $playerName]));
+				$sender->sendMessage($msg->get('delwarn.not-found', ['id' => (string) $id]));
 			}
 		}, function (\Throwable $error) use ($sender, $msg) : void {
-			$sender->sendMessage($msg->get('error.failed-clear-warnings', ['error' => $error->getMessage()]));
+			$sender->sendMessage($msg->get('error.failed-delete-warning', ['error' => $error->getMessage()]));
 		});
 
 		return true;

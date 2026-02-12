@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -15,11 +15,11 @@ namespace aiptu\playerwarn;
 
 use aiptu\playerwarn\event\PlayerPunishmentEvent;
 use aiptu\playerwarn\event\WarnAddEvent;
+use aiptu\playerwarn\event\WarnEditEvent;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\utils\TextFormat;
 
 class EventListener implements Listener {
 	public function __construct(
@@ -30,75 +30,133 @@ class EventListener implements Listener {
 	 * @priority HIGH
 	 */
 	public function onPlayerJoin(PlayerJoinEvent $event) : void {
-		$plugin = $this->plugin;
 		$player = $event->getPlayer();
 		$playerName = $player->getName();
 
-		$lastWarningCount = $plugin->getLastWarningCount($playerName);
-		$currentWarningCount = $plugin->getWarns()->getWarningCount($playerName);
+		$pendingManager = $this->plugin->getPendingPunishmentManager();
+		if ($pendingManager->hasPending($playerName)) {
+			$pendingPunishments = $pendingManager->getPending($playerName);
 
-		if ($currentWarningCount > $lastWarningCount) {
-			$newWarningCount = $currentWarningCount - $lastWarningCount;
-			$player->sendMessage(TextFormat::YELLOW . "You have received {$newWarningCount} new warning(s). Please take note of your behavior.");
-		}
-
-		$plugin->setLastWarningCount($playerName, $currentWarningCount);
-
-		$warns = $plugin->getWarns();
-
-		if ($warns->hasWarnings($playerName)) {
-			$warningCount = $warns->getWarningCount($playerName);
-			$player->sendMessage(TextFormat::RED . "You have {$warningCount} active warning(s). Please take note of your behavior.");
-		} else {
-			$player->sendMessage(TextFormat::GREEN . 'You have no active warnings. Keep up the good behavior!');
-		}
-
-		if ($plugin->hasPendingPunishments($playerName)) {
-			$pendingPunishments = $plugin->getPendingPunishments($playerName);
-			foreach ($pendingPunishments as $pendingPunishment) {
-				$punishmentType = $pendingPunishment['punishmentType'];
-				$reason = $pendingPunishment['reason'];
-				$issuerName = $pendingPunishment['issuerName'];
-				$plugin->scheduleDelayedPunishment($player, $punishmentType, $issuerName, $reason);
+			foreach ($pendingPunishments as $punishment) {
+				$this->plugin->getPunishmentService()->scheduleDelayedPunishment(
+					$player,
+					$punishment['type'],
+					$punishment['issuer'],
+					$punishment['reason']
+				);
 			}
 
-			$plugin->removePendingPunishments($playerName);
+			$pendingManager->clear($playerName);
 		}
+
+		$this->plugin->getProvider()->getWarningCount(
+			$playerName,
+			function (int $currentWarningCount) use ($player, $playerName) : void {
+				$msg = $this->plugin->getMessageManager();
+				$tracker = $this->plugin->getWarningTracker();
+				$lastWarningCount = $tracker->getLastCount($playerName);
+
+				if ($currentWarningCount > $lastWarningCount) {
+					$newWarningCount = $currentWarningCount - $lastWarningCount;
+					$player->sendMessage($msg->get('join.new-warnings', [
+						'count' => (string) $newWarningCount,
+					]));
+				}
+
+				$tracker->setLastCount($playerName, $currentWarningCount);
+
+				if ($currentWarningCount > 0) {
+					$player->sendMessage($msg->get('join.active-warnings', [
+						'count' => (string) $currentWarningCount,
+					]));
+				} else {
+					$player->sendMessage($msg->get('join.no-warnings'));
+				}
+			},
+			function (\Throwable $error) use ($playerName) : void {
+				$this->plugin->getLogger()->error(
+					"Failed to get warning count for {$playerName}: " . $error->getMessage()
+				);
+			}
+		);
 	}
 
 	public function onWarnAdd(WarnAddEvent $event) : void {
-		$plugin = $this->plugin;
-		$warnEntry = $event->getWarnEntry();
-
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendAddRequest($warnEntry);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningAdded($warnEntry, $count);
+				},
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
+				}
+			);
 		}
 	}
 
 	public function onWarnRemove(WarnRemoveEvent $event) : void {
-		$plugin = $this->plugin;
-		$warnEntry = $event->getWarnEntry();
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningRemoved($warnEntry, $count);
+				},
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
+				}
+			);
+		}
+	}
 
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendRemoveRequest($warnEntry);
+	public function onWarnEdit(WarnEditEvent $event) : void {
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$discordService->sendWarningEdited(
+				$event->getWarnEntry(),
+				$event->getEditType(),
+				$event->getOldValue(),
+				$event->getNewValue()
+			);
 		}
 	}
 
 	public function onWarnExpired(WarnExpiredEvent $event) : void {
-		$plugin = $this->plugin;
-		$player = $event->getPlayer();
-		$warnEntry = $event->getWarnEntry();
-
-		$player->sendMessage(TextFormat::YELLOW . 'Your warning has expired: ' . $warnEntry->getReason());
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendExpiredRequest($warnEntry);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$warnEntry = $event->getWarnEntry();
+			$playerName = $warnEntry->getPlayerName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $warnEntry) : void {
+					$discordService->sendWarningExpired($warnEntry, $count);
+				},
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
+				}
+			);
 		}
 	}
 
 	public function onPlayerPunishment(PlayerPunishmentEvent $event) : void {
-		$plugin = $this->plugin;
-		if ($plugin->isDiscordEnabled()) {
-			$plugin->sendPunishmentRequest($event);
+		$discordService = $this->plugin->getDiscordService();
+		if ($discordService !== null) {
+			$playerName = $event->getPlayer()->getName();
+			$this->plugin->getProvider()->getWarningCount(
+				$playerName,
+				function (int $count) use ($discordService, $event) : void {
+					$discordService->sendPunishment($event, $count);
+				},
+				function (\Throwable $error) : void {
+					$this->plugin->getLogger()->warning('Failed to fetch warning count for Discord, skipping notification: ' . $error->getMessage());
+				}
+			);
 		}
 	}
 }

@@ -1,0 +1,124 @@
+# PlayerWarn - English Language File
+# You can use color codes with "§" or "&" before the color code.
+# Available placeholders are shown in comments above each message.
+
+# Command descriptions
+command:
+  warn:
+    description: "Warn a player"
+    usage: "/warn <player> <reason> [duration]"
+  warns:
+    description: "View warnings for a player"
+    usage: "/warns [player]"
+  clearwarns:
+    description: "Clear warnings for a player"
+    usage: "/clearwarns <player>"
+  delwarn:
+    description: "Delete a specific warning"
+    usage: "/delwarn <player> <id>"
+  editwarn:
+    description: "Edit a player's warning reason or expiration"
+    usage: "/editwarn <player> <id> <field> <value...>"
+  listwarns:
+    description: "View all players with warnings"
+    usage: "/listwarns"
+
+# Warn command messages
+# Placeholders: {player}, {reason}, {sender}, {id}, {count}, {expiration}
+warn:
+  player-not-found: "&cInvalid player username. The player has not played before."
+  cannot-warn: "&cYou cannot warn this player."
+  cannot-warn-bypass: "&cYou cannot warn this player (has bypass permission)."
+  invalid-duration: "&cInvalid duration format: {error}"
+  warned-player: "&eYou have been warned by &b{sender}&e for: &b{reason}"
+  warned-player-expiration: "&eThe warning will {expiration}"
+  warned-sender: "&bPlayer &e{player}&b has been warned for: &e{reason}&b (Warning ID: &e{id}&b)"
+  warned-sender-expiration: "&bThe warning will {expiration}"
+  warned-sender-count: "&bPlayer &e{player}&b now has a total of &e{count}&b warning(s)."
+  limit-reached: "&cPlayer &e{player}&c has reached the warning limit and will be punished."
+  offline-pending: "&ePlayer &b{player}&e is currently offline. The punishment will be applied when they rejoin."
+
+# Broadcast message
+# Placeholders: {player}, {reason}, {sender}
+broadcast:
+  player-warned: "&d{player}&e has been warned for: &d{reason}&e by &d{sender}"
+
+# Warns command messages
+# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}
+warns:
+  console-specify-player: "&cPlease specify a player name when using this command from the console."
+  no-warnings: "&cNo warnings found for {player}."
+  header: "&bWarnings for {player} (Count: {count}):"
+  entry: "&7{line}- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
+
+# Clear warns command messages
+# Placeholders: {player}, {count}
+clearwarns:
+  cleared: "&aCleared {count} warning(s) for {player}."
+  no-warnings: "&eNo warnings found for {player}."
+
+# Delete warn command messages
+# Placeholders: {player}, {id}
+delwarn:
+  id-must-be-number: "&cWarning ID must be a number."
+  deleted: "&aSuccessfully deleted warning ID {id} for player {player}."
+  not-found: "&cWarning ID {id} not found."
+
+# Edit warn command messages
+# Placeholders: {id}, {reason}, {expiration}, {error}
+editwarn:
+  usage: "&cUsage: /editwarn <player> <id> <reason|expiration> <value...>"
+  id-must-be-number: "&cWarning ID must be a number."
+  player-not-found: "&cInvalid player username. The player has not played before."
+  reason-empty: "&cReason cannot be empty."
+  reason-updated: "&aSuccessfully updated warning ID {id} reason to: {reason}"
+  expiration-updated: "&aSuccessfully updated warning ID {id} expiration to: {expiration}"
+  not-found: "&cWarning ID {id} not found."
+  unknown-field: '&cUnknown field. Use "reason" or "expiration".'
+  invalid-duration: "&cInvalid duration format: {error}"
+
+# List warns command messages
+# Placeholders: {total_players}, {total_warnings}, {player}, {count}, {last_warning}, {ids}
+listwarns:
+  no-players: "&eNo players have any warnings."
+  header: "&6========== Players with Warnings =========="
+  summary: "&bTotal Players: {total_players} | Total Warnings: {total_warnings}"
+  entry: "&e{player}&7 - &c{count}&7 warning{plural}&8 (Last: {last_warning})&eIDs: {ids}"
+  footer: "&6==========================================="
+
+# Player join messages
+# Placeholders: {count}
+join:
+  new-warnings: "&eYou have received {count} new warning(s). Please take note of your behavior."
+  active-warnings: "&cYou have {count} active warning(s). Please take note of your behavior."
+  no-warnings: "&aYou have no active warnings. Keep up the good behavior!"
+
+# Expiration text
+# Placeholders: {duration}, {date}
+expiration:
+  never: "never expire"
+  until: "until {duration} ({date})"
+
+# Punishment messages
+# Placeholders: {player}, {delay}
+punishment:
+  warning-message: "&cYou have reached the warning limit. You will be punished in {delay} seconds."
+  kick: "&cYou have been kicked for reaching the warning limit."
+  ban: "&cYou have been banned for reaching the warning limit."
+  ban-ip: "&cYour IP address has been banned for reaching the warning limit."
+  tempban: "&cYou have been temporarily banned for reaching the warning limit."
+
+# Expired warning messages
+# Placeholders: {reason}
+expired:
+  player-notify: "&eYour warning has expired: {reason}"
+
+# Error messages
+error:
+  failed-warning-count: "&cFailed to get warning count: {error}"
+  failed-add-warning: "&cFailed to add warning: {error}"
+  failed-fetch-warnings: "&cFailed to fetch warnings: {error}"
+  failed-clear-warnings: "&cFailed to clear warnings: {error}"
+  failed-delete-warning: "&cFailed to delete warning: {error}"
+  failed-update-warning: "&cFailed to update warning: {error}"
+  failed-fetch-list: "&cFailed to fetch warnings list: {error}"

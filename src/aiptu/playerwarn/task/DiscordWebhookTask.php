@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -17,6 +17,7 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\utils\Internet;
 use pocketmine\utils\InternetRequestResult;
 use pocketmine\utils\Utils;
+use function array_values;
 use function igbinary_serialize;
 use function igbinary_unserialize;
 use function is_array;
@@ -51,10 +52,13 @@ class DiscordWebhookTask extends AsyncTask {
 	}
 
 	public function onRun() : void {
+		/** @var array<string, string>|list<string> $extraHeaders */
 		$extraHeaders = igbinary_unserialize($this->headers);
 		if (!is_array($extraHeaders)) {
 			throw new \InvalidArgumentException('Failed to unserialize headers');
 		}
+
+		$extraHeaders = array_values($extraHeaders);
 
 		$this->setResult(Internet::postURL(
 			page: $this->page,

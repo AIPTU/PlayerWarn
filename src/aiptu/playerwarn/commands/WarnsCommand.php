@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -15,12 +15,11 @@ namespace aiptu\playerwarn\commands;
 
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\utils\Utils;
-use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
-use pocketmine\utils\TextFormat;
 use function count;
 
 class WarnsCommand extends Command implements PluginOwned {
@@ -32,10 +31,11 @@ class WarnsCommand extends Command implements PluginOwned {
 		private PlayerWarn $plugin
 	) {
 		$this->setOwningPlugin($plugin);
+		$msg = $plugin->getMessageManager();
 		parent::__construct(
 			'warns',
-			'View warnings for a player',
-			'/warns [player]',
+			$msg->get('command.warns.description'),
+			$msg->get('command.warns.usage'),
 		);
 		$this->setPermission('playerwarn.command.warns');
 	}
@@ -45,29 +45,48 @@ class WarnsCommand extends Command implements PluginOwned {
 			return false;
 		}
 
-		$playerName = $args[0] ?? $sender->getName();
-		$hasWarnings = $this->plugin->getWarns()->hasWarnings($playerName);
+		$msg = $this->plugin->getMessageManager();
 
-		if (!$hasWarnings) {
-			$sender->sendMessage(TextFormat::RED . "No warnings found for {$playerName}.");
+		if (!$sender instanceof Player && !isset($args[0])) {
+			$sender->sendMessage($msg->get('warns.console-specify-player'));
 			return false;
 		}
 
-		$warns = $this->plugin->getWarns()->getWarns($playerName);
-		$warningCount = count($warns);
+		$playerName = $args[0] ?? $sender->getName();
 
-		$message = TextFormat::AQUA . "Warnings for {$playerName} (Count: {$warningCount}):";
-		foreach ($warns as $warnEntry) {
-			$timestamp = $warnEntry->getTimestamp()->format(WarnEntry::DATE_TIME_FORMAT);
-			$reason = $warnEntry->getReason();
-			$source = $warnEntry->getSource();
-			$expiration = $warnEntry->getExpiration();
-			$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(WarnEntry::DATE_TIME_FORMAT)})" : 'Never';
+		$this->plugin->getProvider()->getWarns($playerName, function (array $warns) use ($sender, $playerName, $msg) : void {
+			if (count($warns) === 0) {
+				$sender->sendMessage($msg->get('warns.no-warnings', ['player' => $playerName]));
+				return;
+			}
 
-			$message .= TextFormat::GRAY . "\n- " . TextFormat::YELLOW . 'Timestamp: ' . TextFormat::WHITE . "{$timestamp} " . TextFormat::YELLOW . '| Reason: ' . TextFormat::WHITE . "{$reason} " . TextFormat::YELLOW . '| Source: ' . TextFormat::WHITE . "{$source} " . TextFormat::YELLOW . '| Expiration: ' . TextFormat::WHITE . "{$expirationString}";
-		}
+			$warningCount = count($warns);
 
-		$sender->sendMessage($message);
+			$message = $msg->get('warns.header', [
+				'player' => $playerName,
+				'count' => (string) $warningCount,
+			]);
+			foreach ($warns as $warnEntry) {
+				$timestamp = $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT);
+				$reason = $warnEntry->getReason();
+				$source = $warnEntry->getSource();
+				$expiration = $warnEntry->getExpiration();
+				$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(Utils::DATE_TIME_FORMAT)})" : 'Never';
+				$id = $warnEntry->getId();
+
+				$message .= $msg->get('warns.entry', [
+					'id' => (string) $id,
+					'timestamp' => $timestamp,
+					'reason' => $reason,
+					'source' => $source,
+					'expiration' => $expirationString,
+				]);
+			}
+
+			$sender->sendMessage($message);
+		}, function (\Throwable $error) use ($sender, $msg) : void {
+			$sender->sendMessage($msg->get('error.failed-fetch-warnings', ['error' => $error->getMessage()]));
+		});
 
 		return true;
 	}

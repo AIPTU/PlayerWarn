@@ -1,22 +1,35 @@
 {
-  "content": "A warning has been issued.",
+  "content": "⚠️ A new warning has been issued.",
   "embeds": [
     {
-      "title": "Player Warned",
-      "description": "Player {player} has been warned for: {reason}.",
-      "color": 16124683,
+      "title": "🚨 Player Warned",
+      "description": "**{player}** has received a warning.\n\n**Reason:** {reason}",
+      "color": 16724530,
       "fields": [
         {
-          "name": "Source",
-          "value": "{source}"
+          "name": "📋 Warning ID",
+          "value": "{id}",
+          "inline": true
         },
         {
-          "name": "Timestamp",
-          "value": "{timestamp}"
+          "name": "📊 Total Warnings",
+          "value": "{count}",
+          "inline": true
         },
         {
-          "name": "Expiration",
-          "value": "{expiration}"
+          "name": "📝 Source",
+          "value": "{source}",
+          "inline": true
+        },
+        {
+          "name": "⏰ Issued At",
+          "value": "{timestamp}",
+          "inline": true
+        },
+        {
+          "name": "⌛ Expires",
+          "value": "{expiration}",
+          "inline": false
         }
       ]
     }

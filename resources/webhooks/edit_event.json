@@ -1,10 +1,10 @@
 {
-  "content": "⏳ A warning has automatically expired.",
+  "content": "✏️ A warning has been edited.",
   "embeds": [
     {
-      "title": "⚪ Warning Expired",
-      "description": "**{player}**'s warning has automatically expired.\n\n_The player is forgiven._",
-      "color": 9807270,
+      "title": "🟡 Warning Modified",
+      "description": "**{player}**'s warning has been updated by a moderator.",
+      "color": 16776960,
       "fields": [
         {
           "name": "📋 Warning ID",
@@ -12,12 +12,7 @@
           "inline": true
         },
         {
-          "name": "📊 Remaining Warnings",
-          "value": "{remainingCount}",
-          "inline": true
-        },
-        {
-          "name": "💬 Reason",
+          "name": "💬 Current Reason",
           "value": "{reason}",
           "inline": false
         },
@@ -27,9 +22,19 @@
           "inline": true
         },
         {
-          "name": "📅 Expired Date",
-          "value": "{expirationDate}",
+          "name": "📌 Modified Field",
+          "value": "{editType}",
           "inline": true
+        },
+        {
+          "name": "🔄 Previous Value",
+          "value": "{oldValue}",
+          "inline": false
+        },
+        {
+          "name": "⚡ New Value",
+          "value": "{newValue}",
+          "inline": false
         }
       ]
     }

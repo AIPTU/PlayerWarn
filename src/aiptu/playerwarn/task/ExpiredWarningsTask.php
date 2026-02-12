@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Copyright (c) 2023-2025 AIPTU
+ * Copyright (c) 2023-2026 AIPTU
  *
  * For the full copyright and license information, please view
- * the LICENSE.md file that was distributed with this source code.
+ * the LICENSE file that was distributed with this source code.
  *
  * @see https://github.com/AIPTU/PlayerWarn
  */
@@ -24,25 +24,39 @@ class ExpiredWarningsTask extends Task {
 	) {}
 
 	public function onRun() : void {
-		$server = $this->plugin->getServer();
-		$warns = $this->plugin->getWarns();
-
-		foreach ($server->getOnlinePlayers() as $player) {
-			$playerName = $player->getName();
-			$playerWarns = $warns->getWarns($playerName);
-
-			if (count($playerWarns) === 0) {
-				continue;
-			}
-
-			foreach ($playerWarns as $index => $warnEntry) {
-				if ($warnEntry->hasExpired()) {
-					$event = new WarnExpiredEvent($player, $warnEntry);
-					$event->call();
-
-					$warns->removeSpecificWarn($warnEntry);
+		$this->plugin->getProvider()->getExpiredWarns(
+			function (array $warns) : void {
+				if (count($warns) === 0) {
+					return;
 				}
+
+				$msg = $this->plugin->getMessageManager();
+
+				foreach ($warns as $warnEntry) {
+					$player = $this->plugin->getServer()->getPlayerExact($warnEntry->getPlayerName());
+					if ($player !== null && $player->isOnline()) {
+						$player->sendMessage($msg->get('expired.player-notify', [
+							'reason' => $warnEntry->getReason(),
+						]));
+					}
+
+					(new WarnExpiredEvent($warnEntry))->call();
+				}
+
+				$this->plugin->getProvider()->removeExpiredWarns(
+					function (int $affectedRows) : void {
+						if ($affectedRows > 0) {
+							$this->plugin->getLogger()->info("Removed {$affectedRows} expired warning(s)");
+						}
+					},
+					function (\Throwable $error) : void {
+						$this->plugin->getLogger()->error('Failed to remove expired warnings: ' . $error->getMessage());
+					}
+				);
+			},
+			function (\Throwable $error) : void {
+				$this->plugin->getLogger()->error('Failed to fetch expired warnings: ' . $error->getMessage());
 			}
-		}
+		);
 	}
 }

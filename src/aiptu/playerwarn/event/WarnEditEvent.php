@@ -16,12 +16,27 @@ namespace aiptu\playerwarn\event;
 use aiptu\playerwarn\warns\WarnEntry;
 use pocketmine\event\Event;
 
-class WarnExpiredEvent extends Event {
+class WarnEditEvent extends Event {
 	public function __construct(
-		private WarnEntry $warnEntry
+		private WarnEntry $warnEntry,
+		private string $editType,
+		private string $oldValue,
+		private string $newValue
 	) {}
 
 	public function getWarnEntry() : WarnEntry {
 		return $this->warnEntry;
+	}
+
+	public function getEditType() : string {
+		return $this->editType;
+	}
+
+	public function getOldValue() : string {
+		return $this->oldValue;
+	}
+
+	public function getNewValue() : string {
+		return $this->newValue;
 	}
 }

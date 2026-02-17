@@ -4,6 +4,7 @@
     "license": "MIT",
     "type": "project",
     "require": {
+        "bstats/pocketmine-mp": "^1.0",
         "ifera-mc/update-notifier": "dev-master",
         "pocketmine/pocketmine-mp": "^5.0",
         "sof3/libasynql": "dev-master"

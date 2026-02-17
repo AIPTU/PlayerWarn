@@ -26,6 +26,9 @@ use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
+use bStats\PocketmineMp\charts\SimplePie;
+use bStats\PocketmineMp\charts\SingleLineChart;
+use bStats\PocketmineMp\Metrics;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use JackMD\UpdateNotifier\UpdateNotifier;
@@ -112,6 +115,43 @@ class PlayerWarn extends PluginBase {
 		if ($this->updateNotifierEnabled) {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
 		}
+
+		$metrics = new Metrics($this, 29586);
+
+		$metrics->addCustomChart(new SimplePie(
+			'databaseType',
+			fn () => $this->getConfig()->getNested('database.type', 'sqlite')
+		));
+
+		$metrics->addCustomChart(new SimplePie(
+			'punishmentType',
+			fn () => $this->getPunishmentType()->value
+		));
+
+		$metrics->addCustomChart(new SimplePie(
+			'language',
+			fn () => $this->getConfig()->get('language', 'en')
+		));
+
+		$metrics->addCustomChart(new SimplePie(
+			'discordEnabled',
+			fn () => $this->isDiscordEnabled() ? 'Enabled' : 'Disabled'
+		));
+
+		$metrics->addCustomChart(new SimplePie(
+			'broadcastEnabled',
+			fn () => $this->isBroadcastToEveryoneEnabled() ? 'Enabled' : 'Disabled'
+		));
+
+		$metrics->addCustomChart(new SingleLineChart(
+			'warningLimit',
+			fn () => $this->getWarningLimit()
+		));
+
+		$metrics->addCustomChart(new SingleLineChart(
+			'punishmentDelay',
+			fn () => $this->getPunishmentService()->getDelaySeconds()
+		));
 	}
 
 	public function onDisable() : void {

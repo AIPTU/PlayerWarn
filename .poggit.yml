@@ -1,11 +1,1 @@
---- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/AIPTU/PlayerWarn
-build-by-default: true
-branches:
-- poggit/master
-projects:
-  PlayerWarn:
-    path: ""
-    icon: "icon.png"
-    lint:
-      phpstan: false
-...
+{"projects":{"PlayerWarn":{"path":".","lint":false}}}

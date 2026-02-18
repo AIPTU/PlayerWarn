@@ -29,11 +29,11 @@ use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use DateTimeImmutable;
 use InvalidArgumentException;
-use aiptu\playerwarn\libs\_7af75e454779c82d\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_1e9af5e52299cbb8\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
-use aiptu\playerwarn\libs\_7af75e454779c82d\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_1e9af5e52299cbb8\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -88,7 +88,7 @@ class PlayerWarn extends PluginBase {
 		$connector = libasynql::create(
 			$this,
 			$dbConfig,
-			['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']
+			['sqlite' => 'sql/sqlite.sql', 'mysql' => 'sql/mysql.sql']
 		);
 
 		$this->warnProvider = new WarnProvider($connector, $this->getLogger());

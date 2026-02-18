@@ -15,9 +15,9 @@ namespace aiptu\playerwarn\metrics;
 
 use aiptu\playerwarn\PlayerWarn;
 use aiptu\playerwarn\punishment\PunishmentType;
-use aiptu\playerwarn\libs\_7af75e454779c82d\bStats\PocketmineMp\charts\SimplePie;
-use aiptu\playerwarn\libs\_7af75e454779c82d\bStats\PocketmineMp\charts\SingleLineChart;
-use aiptu\playerwarn\libs\_7af75e454779c82d\bStats\PocketmineMp\Metrics;
+use aiptu\playerwarn\libs\_1e9af5e52299cbb8\bStats\PocketmineMp\charts\SimplePie;
+use aiptu\playerwarn\libs\_1e9af5e52299cbb8\bStats\PocketmineMp\charts\SingleLineChart;
+use aiptu\playerwarn\libs\_1e9af5e52299cbb8\bStats\PocketmineMp\Metrics;
 use function count;
 use function is_int;
 use function is_string;

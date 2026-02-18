@@ -20,22 +20,20 @@ use aiptu\playerwarn\commands\ListWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
+use aiptu\playerwarn\metrics\MetricWrapper;
 use aiptu\playerwarn\provider\WarnProvider;
 use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
-use aiptu\playerwarn\libs\_15344d99fffe637d\bStats\PocketmineMp\charts\SimplePie;
-use aiptu\playerwarn\libs\_15344d99fffe637d\bStats\PocketmineMp\charts\SingleLineChart;
-use aiptu\playerwarn\libs\_15344d99fffe637d\bStats\PocketmineMp\Metrics;
 use DateTimeImmutable;
 use InvalidArgumentException;
-use aiptu\playerwarn\libs\_15344d99fffe637d\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_7af75e454779c82d\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
-use aiptu\playerwarn\libs\_15344d99fffe637d\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_7af75e454779c82d\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -116,42 +114,7 @@ class PlayerWarn extends PluginBase {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
 		}
 
-		$metrics = new Metrics($this, 29586);
-
-		$metrics->addCustomChart(new SimplePie(
-			'databaseType',
-			fn () => $this->getConfig()->getNested('database.type', 'sqlite')
-		));
-
-		$metrics->addCustomChart(new SimplePie(
-			'punishmentType',
-			fn () => $this->getPunishmentType()->value
-		));
-
-		$metrics->addCustomChart(new SimplePie(
-			'language',
-			fn () => $this->getConfig()->get('language', 'en')
-		));
-
-		$metrics->addCustomChart(new SimplePie(
-			'discordEnabled',
-			fn () => $this->isDiscordEnabled() ? 'Enabled' : 'Disabled'
-		));
-
-		$metrics->addCustomChart(new SimplePie(
-			'broadcastEnabled',
-			fn () => $this->isBroadcastToEveryoneEnabled() ? 'Enabled' : 'Disabled'
-		));
-
-		$metrics->addCustomChart(new SingleLineChart(
-			'warningLimit',
-			fn () => $this->getWarningLimit()
-		));
-
-		$metrics->addCustomChart(new SingleLineChart(
-			'punishmentDelay',
-			fn () => $this->getPunishmentService()->getDelaySeconds()
-		));
+		MetricWrapper::register($this);
 	}
 
 	public function onDisable() : void {

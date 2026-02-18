@@ -88,7 +88,7 @@ class PlayerWarn extends PluginBase {
 		$connector = libasynql::create(
 			$this,
 			$dbConfig,
-			['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']
+			['sqlite' => 'sql/sqlite.sql', 'mysql' => 'sql/mysql.sql']
 		);
 
 		$this->warnProvider = new WarnProvider($connector, $this->getLogger());

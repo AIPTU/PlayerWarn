@@ -20,16 +20,20 @@ use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginOwned;
 use pocketmine\plugin\PluginOwnedTrait;
+use function array_slice;
+use function ceil;
 use function count;
+use function max;
+use function min;
 
 class WarnsCommand extends Command implements PluginOwned {
 	use PluginOwnedTrait {
 		__construct as setOwningPlugin;
 	}
 
-	public function __construct(
-		private PlayerWarn $plugin
-	) {
+	private const int PAGE_SIZE = 5;
+
+	public function __construct(private PlayerWarn $plugin) {
 		$this->setOwningPlugin($plugin);
 		$msg = $plugin->getMessageManager();
 		parent::__construct(
@@ -53,40 +57,57 @@ class WarnsCommand extends Command implements PluginOwned {
 		}
 
 		$playerName = $args[0] ?? $sender->getName();
+		$requestedPage = isset($args[1]) ? max(1, (int) $args[1]) : 1;
 
-		$this->plugin->getProvider()->getWarns($playerName, function (array $warns) use ($sender, $playerName, $msg) : void {
-			if (count($warns) === 0) {
-				$sender->sendMessage($msg->get('warns.no-warnings', ['player' => $playerName]));
-				return;
+		$this->plugin->getProvider()->getWarns(
+			$playerName,
+			function (array $warns) use ($sender, $playerName, $requestedPage, $msg) : void {
+				if (count($warns) === 0) {
+					$sender->sendMessage($msg->get('warns.no-warnings', ['player' => $playerName]));
+					return;
+				}
+
+				$total = count($warns);
+				$totalPages = (int) ceil($total / self::PAGE_SIZE);
+				$page = min($requestedPage, $totalPages);
+
+				$sender->sendMessage($msg->get('warns.header', [
+					'player' => $playerName,
+					'count' => (string) $total,
+					'page' => (string) $page,
+					'total_pages' => (string) $totalPages,
+				]));
+
+				$entries = array_slice($warns, ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE);
+
+				foreach ($entries as $entry) {
+					$expiration = $entry->getExpiration();
+					$expirationStr = $expiration !== null
+						? $msg->get('expiration.until', [
+							'duration' => Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()),
+							'date' => $expiration->format(Utils::DATE_TIME_FORMAT),
+						])
+						: $msg->get('expiration.never');
+
+					$sender->sendMessage($msg->get('warns.entry', [
+						'id' => (string) $entry->getId(),
+						'timestamp' => $entry->getTimestamp()->format(Utils::DATE_TIME_FORMAT),
+						'reason' => $entry->getReason(),
+						'source' => $entry->getSource(),
+						'expiration' => $expirationStr,
+					]));
+				}
+
+				$sender->sendMessage($msg->get('warns.footer', [
+					'page' => (string) $page,
+					'total_pages' => (string) $totalPages,
+					'command' => "/warns {$playerName}",
+				]));
+			},
+			function (\Throwable $e) use ($sender, $msg) : void {
+				$sender->sendMessage($msg->get('error.failed-fetch-warnings', ['error' => $e->getMessage()]));
 			}
-
-			$warningCount = count($warns);
-
-			$message = $msg->get('warns.header', [
-				'player' => $playerName,
-				'count' => (string) $warningCount,
-			]);
-			foreach ($warns as $warnEntry) {
-				$timestamp = $warnEntry->getTimestamp()->format(Utils::DATE_TIME_FORMAT);
-				$reason = $warnEntry->getReason();
-				$source = $warnEntry->getSource();
-				$expiration = $warnEntry->getExpiration();
-				$expirationString = $expiration !== null ? Utils::formatDuration($expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp()) . " ({$expiration->format(Utils::DATE_TIME_FORMAT)})" : 'Never';
-				$id = $warnEntry->getId();
-
-				$message .= $msg->get('warns.entry', [
-					'id' => (string) $id,
-					'timestamp' => $timestamp,
-					'reason' => $reason,
-					'source' => $source,
-					'expiration' => $expirationString,
-				]);
-			}
-
-			$sender->sendMessage($message);
-		}, function (\Throwable $error) use ($sender, $msg) : void {
-			$sender->sendMessage($msg->get('error.failed-fetch-warnings', ['error' => $error->getMessage()]));
-		});
+		);
 
 		return true;
 	}

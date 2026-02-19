@@ -46,7 +46,7 @@ class MessageManager {
 	/**
 	 * Returns a formatted message for a given key.
 	 * The message can contain placeholders in the format {placeholder}, which will be replaced by the corresponding values from the $params array.
-	 * 
+	 *
 	 * @param array<string, string> $params
 	 */
 	public function get(string $key, array $params = []) : string {
@@ -69,7 +69,7 @@ class MessageManager {
 	/**
 	 * Loads a language file and returns an array of messages.
 	 * If the language file is missing or invalid, it falls back to the default language.
-	 * 
+	 *
 	 * @return array<string, string>
 	 */
 	private function loadLanguage(string $language) : array {
@@ -110,7 +110,7 @@ class MessageManager {
 	/**
 	 * Loads a language file and returns an array of messages.
 	 * If the file is missing or invalid, it returns an empty array.
-	 * 
+	 *
 	 * @return array<string, string>
 	 */
 	private function loadFile(string $language) : array {
@@ -133,7 +133,7 @@ class MessageManager {
 
 	/**
 	 * Flattens a multidimensional array into a single-level array with dot-separated keys.
-	 * 
+	 *
 	 * @param array<mixed, mixed> $array
 	 *
 	 * @return array<string, string>

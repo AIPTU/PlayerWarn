@@ -9,7 +9,7 @@ command:
     usage: "/warn <player> <reason> [duration]"
   warns:
     description: "View warnings for a player"
-    usage: "/warns [player]"
+    usage: "/warns [player] [page]"
   clearwarns:
     description: "Clear warnings for a player"
     usage: "/clearwarns <player>"
@@ -21,7 +21,7 @@ command:
     usage: "/editwarn <player> <id> <field> <value...>"
   listwarns:
     description: "View all players with warnings"
-    usage: "/listwarns"
+    usage: "/listwarns [page]"
 
 # Warn command messages
 # Placeholders: {player}, {reason}, {sender}, {id}, {count}, {expiration}
@@ -44,12 +44,13 @@ broadcast:
   player-warned: "&d{player}&e has been warned for: &d{reason}&e by &d{sender}"
 
 # Warns command messages
-# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}
+# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}, {page}, {total_pages}, {command}
 warns:
   console-specify-player: "&cPlease specify a player name when using this command from the console."
   no-warnings: "&cNo warnings found for {player}."
-  header: "&bWarnings for {player} (Count: {count}):"
+  header: "&bWarnings for {player} &7(Page {page}/{total_pages}, total {count})"
   entry: "&7{line}- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
+  footer: "&7Page {page}/{total_pages} &8— &7{command} <page> for more"
 
 # Clear warns command messages
 # Placeholders: {player}, {count}
@@ -78,13 +79,12 @@ editwarn:
   invalid-duration: "&cInvalid duration format: {error}"
 
 # List warns command messages
-# Placeholders: {total_players}, {total_warnings}, {player}, {count}, {last_warning}, {ids}
+# Placeholders: {total_players}, {total_warnings}, {player}, {count}, {last_warning}, {ids}, {page}, {total_pages}, {command}
 listwarns:
   no-players: "&eNo players have any warnings."
-  header: "&6========== Players with Warnings =========="
-  summary: "&bTotal Players: {total_players} | Total Warnings: {total_warnings}"
-  entry: "&e{player}&7 - &c{count}&7 warning{plural}&8 (Last: {last_warning})&eIDs: {ids}"
-  footer: "&6==========================================="
+  header: "&6Players with Warnings &7(Page {page}/{total_pages}, {total_players} players / {total_warnings} warnings)"
+  entry: "&e{player}&7 - &c{count}&7 warning(s)&8 (Last: {last_warning})&eIDs: {ids}"
+  footer: "&7Page {page}/{total_pages} &8— &7{command} for more"
 
 # Player join messages
 # Placeholders: {count}

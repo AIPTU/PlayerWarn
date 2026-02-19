@@ -20,6 +20,7 @@ use aiptu\playerwarn\commands\ListWarnsCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
+use aiptu\playerwarn\metrics\MetricWrapper;
 use aiptu\playerwarn\provider\WarnProvider;
 use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
@@ -28,11 +29,11 @@ use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
 use DateTimeImmutable;
 use InvalidArgumentException;
-use aiptu\playerwarn\libs\_b185382360274c50\JackMD\UpdateNotifier\UpdateNotifier;
+use aiptu\playerwarn\libs\_a0e8c4c36512a4e0\JackMD\UpdateNotifier\UpdateNotifier;
 use pocketmine\plugin\DisablePluginException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Filesystem as Files;
-use aiptu\playerwarn\libs\_b185382360274c50\poggit\libasynql\libasynql;
+use aiptu\playerwarn\libs\_a0e8c4c36512a4e0\poggit\libasynql\libasynql;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -87,7 +88,7 @@ class PlayerWarn extends PluginBase {
 		$connector = libasynql::create(
 			$this,
 			$dbConfig,
-			['sqlite' => 'sqlite.sql', 'mysql' => 'mysql.sql']
+			['sqlite' => 'sql/sqlite.sql', 'mysql' => 'sql/mysql.sql']
 		);
 
 		$this->warnProvider = new WarnProvider($connector, $this->getLogger());
@@ -112,6 +113,8 @@ class PlayerWarn extends PluginBase {
 		if ($this->updateNotifierEnabled) {
 			UpdateNotifier::checkUpdate($this->getDescription()->getName(), $this->getDescription()->getVersion());
 		}
+
+		MetricWrapper::register($this);
 	}
 
 	public function onDisable() : void {

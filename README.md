@@ -31,7 +31,7 @@ config-version: 3.0
 update_notifier: true
 
 # Language setting
-# Available languages: "en" (English), "id" (Indonesian)
+# Available languages: "en" (English), "id" (Indonesian), "es" (Spanish), "pt" (Portuguese), "de" (German), "fr" (French), "zh" (Chinese)
 # You can add your own language by creating a new file in the "lang" folder.
 language: en
 

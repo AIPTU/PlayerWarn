@@ -26,7 +26,6 @@ use function ceil;
 use function count;
 use function implode;
 use function max;
-use function min;
 use function usort;
 
 class ListWarnsCommand extends Command implements PluginOwned {
@@ -67,7 +66,16 @@ class ListWarnsCommand extends Command implements PluginOwned {
 				$totalPlayers = count($players);
 				$totalWarnings = (int) array_sum(array_column($players, 'count'));
 				$totalPages = (int) ceil($totalPlayers / self::PAGE_SIZE);
-				$page = min($requestedPage, $totalPages);
+
+				if ($requestedPage > $totalPages) {
+					$sender->sendMessage($msg->get('listwarns.no-more-pages', [
+						'page' => (string) $requestedPage,
+						'total_pages' => (string) $totalPages,
+					]));
+					return;
+				}
+
+				$page = $requestedPage;
 
 				$sender->sendMessage($msg->get('listwarns.header', [
 					'total_players' => (string) $totalPlayers,
@@ -93,7 +101,6 @@ class ListWarnsCommand extends Command implements PluginOwned {
 				$sender->sendMessage($msg->get('listwarns.footer', [
 					'page' => (string) $page,
 					'total_pages' => (string) $totalPages,
-					'command' => '/listwarns ' . $page,
 				]));
 			},
 			function (\Throwable $e) use ($sender, $msg) : void {

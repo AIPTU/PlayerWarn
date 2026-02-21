@@ -1,0 +1,100 @@
+# PlayerWarn - French Language File
+
+command:
+  warn:
+    description: "Avertir un joueur"
+    usage: "/warn <joueur> <raison> [durée]"
+  warns:
+    description: "Voir les avertissements d'un joueur"
+    usage: "/warns [joueur] [page]"
+  clearwarns:
+    description: "Effacer les avertissements d'un joueur"
+    usage: "/clearwarns <joueur>"
+  delwarn:
+    description: "Supprimer un avertissement spécifique"
+    usage: "/delwarn <joueur> <id>"
+  editwarn:
+    description: "Modifier la raison ou l'expiration d'un avertissement"
+    usage: "/editwarn <joueur> <id> <champ> <valeur...>"
+  listwarns:
+    description: "Voir tous les joueurs avec des avertissements"
+    usage: "/listwarns [page]"
+
+warn:
+  player-not-found: "&cNom de joueur invalide. Ce joueur n'a jamais joué."
+  cannot-warn: "&cVous ne pouvez pas avertir ce joueur."
+  cannot-warn-bypass: "&cVous ne pouvez pas avertir ce joueur (permission de contournement)."
+  invalid-duration: "&cFormat de durée invalide : {error}"
+  warned-player: "&eVous avez été averti par &b{sender}&e. Raison : &b{reason}"
+  warned-player-expiration: "&eL'avertissement {expiration}."
+  warned-sender: "&bLe joueur &e{player}&b a été averti. Raison : &e{reason}&b (ID : &e{id}&b)"
+  warned-sender-expiration: "&bL'avertissement {expiration}."
+  warned-sender-count: "&bLe joueur &e{player}&b a maintenant &e{count}&b avertissement(s)."
+  limit-reached: "&cLe joueur &e{player}&c a atteint la limite et sera puni."
+  offline-pending: "&eLe joueur &b{player}&e est hors ligne. La punition sera appliquée à sa reconnexion."
+
+broadcast:
+  player-warned: "&d{player}&e a été averti par &d{sender}&e. Raison : &d{reason}"
+
+warns:
+  console-specify-player: "&cVeuillez spécifier un nom de joueur."
+  no-warnings: "&cAucun avertissement trouvé pour {player}."
+  header: "&bAvertissements pour {player} &7(Page {page}/{total_pages}, total {count})"
+  entry: "&7- &eID : {id} &7| &fRaison : {reason} &7| &fSource : {source} &7| &fExpiration : {expiration} &7| &f{timestamp}"
+  footer: "&7Page {page}/{total_pages} — plus de pages avec /warns <joueur> <page>"
+  no-more-pages: "&cLa page {page} n'existe pas. Dernière page : {total_pages}."
+
+clearwarns:
+  cleared: "&a{count} avertissement(s) effacé(s) pour {player}."
+  no-warnings: "&eAucun avertissement trouvé pour {player}."
+
+delwarn:
+  id-must-be-number: "&cL'ID doit être un nombre."
+  deleted: "&aAvertissement ID {id} pour {player} supprimé."
+  not-found: "&cAvertissement ID {id} introuvable."
+
+editwarn:
+  usage: "&cUsage : /editwarn <joueur> <id> <reason|expiration> <valeur...>"
+  id-must-be-number: "&cL'ID doit être un nombre."
+  player-not-found: "&cNom de joueur invalide. Ce joueur n'a jamais joué."
+  reason-empty: "&cLa raison ne peut pas être vide."
+  reason-updated: "&aRaison de l'avertissement ID {id} mise à jour : {reason}"
+  expiration-updated: "&aExpiration de l'avertissement ID {id} mise à jour : {expiration}"
+  not-found: "&cAvertissement ID {id} introuvable."
+  unknown-field: '&cChamp inconnu. Utilisez "reason" ou "expiration".'
+  invalid-duration: "&cFormat de durée invalide : {error}"
+
+listwarns:
+  no-players: "&eAucun joueur n'a d'avertissements."
+  header: "&6Joueurs avec avertissements &7(Page {page}/{total_pages}, total {total_players} joueurs / {total_warnings} avertissements)"
+  entry: "&e{player} &7— &c{count} &7avertissement(s) &8| Dernier : {last_warning} &8| IDs : {ids}"
+  footer: "&7Page {page}/{total_pages} — plus de pages avec /listwarns <page>"
+  no-more-pages: "&cLa page {page} n'existe pas. Dernière page : {total_pages}."
+
+join:
+  new-warnings: "&eNouveau : {count} avertissement(s). Veuillez surveiller votre comportement."
+  active-warnings: "&cActif : {count} avertissement(s). Veuillez surveiller votre comportement."
+  no-warnings: "&aVous n'avez aucun avertissement actif. Continuez ainsi !"
+
+expiration:
+  never: "n'expire jamais"
+  until: "expire dans {duration} ({date})"
+
+punishment:
+  warning-message: "&cVous serez puni dans {delay} secondes."
+  kick: "&cExpulsé pour avoir atteint la limite d'avertissements."
+  ban: "&cBanni pour avoir atteint la limite d'avertissements."
+  ban-ip: "&cIP bannie pour avoir atteint la limite d'avertissements."
+  tempban: "&cBanni temporairement pour avoir atteint la limite d'avertissements."
+
+expired:
+  player-notify: "&eVotre avertissement a expiré : {reason}"
+
+error:
+  failed-warning-count: "&cÉchec de la récupération du nombre d'avertissements : {error}"
+  failed-add-warning: "&cÉchec de l'ajout de l'avertissement : {error}"
+  failed-fetch-warnings: "&cÉchec de la récupération des avertissements : {error}"
+  failed-clear-warnings: "&cÉchec de la suppression des avertissements : {error}"
+  failed-delete-warning: "&cÉchec de la suppression de l'avertissement : {error}"
+  failed-update-warning: "&cÉchec de la mise à jour de l'avertissement : {error}"
+  failed-fetch-list: "&cÉchec de la récupération de la liste : {error}"

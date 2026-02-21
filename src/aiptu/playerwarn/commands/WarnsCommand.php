@@ -24,7 +24,6 @@ use function array_slice;
 use function ceil;
 use function count;
 use function max;
-use function min;
 
 class WarnsCommand extends Command implements PluginOwned {
 	use PluginOwnedTrait {
@@ -69,7 +68,16 @@ class WarnsCommand extends Command implements PluginOwned {
 
 				$total = count($warns);
 				$totalPages = (int) ceil($total / self::PAGE_SIZE);
-				$page = min($requestedPage, $totalPages);
+
+				if ($requestedPage > $totalPages) {
+					$sender->sendMessage($msg->get('warns.no-more-pages', [
+						'page' => (string) $requestedPage,
+						'total_pages' => (string) $totalPages,
+					]));
+					return;
+				}
+
+				$page = $requestedPage;
 
 				$sender->sendMessage($msg->get('warns.header', [
 					'player' => $playerName,
@@ -101,7 +109,6 @@ class WarnsCommand extends Command implements PluginOwned {
 				$sender->sendMessage($msg->get('warns.footer', [
 					'page' => (string) $page,
 					'total_pages' => (string) $totalPages,
-					'command' => "/warns {$playerName}",
 				]));
 			},
 			function (\Throwable $e) use ($sender, $msg) : void {

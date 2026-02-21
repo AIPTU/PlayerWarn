@@ -1,0 +1,100 @@
+# PlayerWarn - German Language File
+
+command:
+  warn:
+    description: "Einen Spieler verwarnen"
+    usage: "/warn <Spieler> <Grund> [Dauer]"
+  warns:
+    description: "Verwarnungen eines Spielers anzeigen"
+    usage: "/warns [Spieler] [Seite]"
+  clearwarns:
+    description: "Verwarnungen eines Spielers löschen"
+    usage: "/clearwarns <Spieler>"
+  delwarn:
+    description: "Eine bestimmte Verwarnung löschen"
+    usage: "/delwarn <Spieler> <ID>"
+  editwarn:
+    description: "Grund oder Ablauf einer Verwarnung bearbeiten"
+    usage: "/editwarn <Spieler> <ID> <Feld> <Wert...>"
+  listwarns:
+    description: "Alle Spieler mit Verwarnungen anzeigen"
+    usage: "/listwarns [Seite]"
+
+warn:
+  player-not-found: "&cUngültiger Spielername. Der Spieler hat noch nie gespielt."
+  cannot-warn: "&cDu kannst diesen Spieler nicht verwarnen."
+  cannot-warn-bypass: "&cDu kannst diesen Spieler nicht verwarnen (hat Bypass-Berechtigung)."
+  invalid-duration: "&cUngültiges Dauerformat: {error}"
+  warned-player: "&eDu wurdest von &b{sender}&e verwarnt. Grund: &b{reason}"
+  warned-player-expiration: "&eDie Verwarnung {expiration}."
+  warned-sender: "&bSpieler &e{player}&b wurde verwarnt. Grund: &e{reason}&b (ID: &e{id}&b)"
+  warned-sender-expiration: "&bDie Verwarnung {expiration}."
+  warned-sender-count: "&bSpieler &e{player}&b hat jetzt &e{count}&b Verwarnung(en)."
+  limit-reached: "&cSpieler &e{player}&c hat das Limit erreicht und wird bestraft."
+  offline-pending: "&eSpieler &b{player}&e ist offline. Die Strafe wird beim nächsten Login angewendet."
+
+broadcast:
+  player-warned: "&d{player}&e wurde von &d{sender}&e verwarnt. Grund: &d{reason}"
+
+warns:
+  console-specify-player: "&cBitte gib einen Spielernamen an."
+  no-warnings: "&cKeine Verwarnungen für {player}."
+  header: "&bVerwarnungen für {player} &7(Seite {page}/{total_pages}, gesamt {count})"
+  entry: "&7- &eID: {id} &7| &fGrund: {reason} &7| &fQuelle: {source} &7| &fAblauf: {expiration} &7| &f{timestamp}"
+  footer: "&7Seite {page}/{total_pages} — weitere Seite mit /warns <Spieler> <Seite>"
+  no-more-pages: "&cSeite {page} existiert nicht. Letzte Seite: {total_pages}."
+
+clearwarns:
+  cleared: "&a{count} Verwarnung(en) für {player} gelöscht."
+  no-warnings: "&eKeine Verwarnungen für {player}."
+
+delwarn:
+  id-must-be-number: "&cID muss eine Zahl sein."
+  deleted: "&aVerwarnung ID {id} für {player} gelöscht."
+  not-found: "&cVerwarnung ID {id} nicht gefunden."
+
+editwarn:
+  usage: "&cVerwendung: /editwarn <Spieler> <ID> <reason|expiration> <Wert...>"
+  id-must-be-number: "&cID muss eine Zahl sein."
+  player-not-found: "&cUngültiger Spielername. Der Spieler hat noch nie gespielt."
+  reason-empty: "&cGrund darf nicht leer sein."
+  reason-updated: "&aGrund von Verwarnung ID {id} geändert zu: {reason}"
+  expiration-updated: "&aAblauf von Verwarnung ID {id} geändert zu: {expiration}"
+  not-found: "&cVerwarnung ID {id} nicht gefunden."
+  unknown-field: '&cUnbekanntes Feld. Verwende "reason" oder "expiration".'
+  invalid-duration: "&cUngültiges Dauerformat: {error}"
+
+listwarns:
+  no-players: "&eKein Spieler hat Verwarnungen."
+  header: "&6Spieler mit Verwarnungen &7(Seite {page}/{total_pages}, gesamt {total_players} Spieler / {total_warnings} Verwarnungen)"
+  entry: "&e{player} &7— &c{count} &7Verwarnung(en) &8| Zuletzt: {last_warning} &8| IDs: {ids}"
+  footer: "&7Seite {page}/{total_pages} — weitere Seite mit /listwarns <Seite>"
+  no-more-pages: "&cSeite {page} existiert nicht. Letzte Seite: {total_pages}."
+
+join:
+  new-warnings: "&eNeu: {count} Verwarnung(en). Bitte achte auf dein Verhalten."
+  active-warnings: "&cAktiv: {count} Verwarnung(en). Bitte achte auf dein Verhalten."
+  no-warnings: "&aDu hast keine aktiven Verwarnungen. Weiter so!"
+
+expiration:
+  never: "läuft nie ab"
+  until: "läuft ab in {duration} ({date})"
+
+punishment:
+  warning-message: "&cDu wirst in {delay} Sekunden bestraft."
+  kick: "&cGekickt – Verwarnungslimit erreicht."
+  ban: "&cGebannt – Verwarnungslimit erreicht."
+  ban-ip: "&cIP gebannt – Verwarnungslimit erreicht."
+  tempban: "&cTemporär gebannt – Verwarnungslimit erreicht."
+
+expired:
+  player-notify: "&eDeine Verwarnung ist abgelaufen: {reason}"
+
+error:
+  failed-warning-count: "&cFehler beim Abrufen der Verwarnungsanzahl: {error}"
+  failed-add-warning: "&cFehler beim Hinzufügen der Verwarnung: {error}"
+  failed-fetch-warnings: "&cFehler beim Abrufen der Verwarnungen: {error}"
+  failed-clear-warnings: "&cFehler beim Löschen der Verwarnungen: {error}"
+  failed-delete-warning: "&cFehler beim Löschen der Verwarnung: {error}"
+  failed-update-warning: "&cFehler beim Aktualisieren der Verwarnung: {error}"
+  failed-fetch-list: "&cFehler beim Abrufen der Liste: {error}"

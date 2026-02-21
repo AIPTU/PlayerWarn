@@ -1,0 +1,100 @@
+# PlayerWarn - Chinese Language File
+
+command:
+  warn:
+    description: "警告玩家"
+    usage: "/warn <玩家> <原因> [时长]"
+  warns:
+    description: "查看玩家的警告"
+    usage: "/warns [玩家] [页码]"
+  clearwarns:
+    description: "清除玩家的所有警告"
+    usage: "/clearwarns <玩家>"
+  delwarn:
+    description: "删除指定警告"
+    usage: "/delwarn <玩家> <ID>"
+  editwarn:
+    description: "编辑警告的原因或到期时间"
+    usage: "/editwarn <玩家> <ID> <字段> <值...>"
+  listwarns:
+    description: "查看所有有警告的玩家"
+    usage: "/listwarns [页码]"
+
+warn:
+  player-not-found: "&c无效的玩家名称，该玩家从未游玩过。"
+  cannot-warn: "&c你无法警告该玩家。"
+  cannot-warn-bypass: "&c你无法警告该玩家（其拥有绕过权限）。"
+  invalid-duration: "&c无效的时长格式：{error}"
+  warned-player: "&e你已被 &b{sender}&e 警告。原因：&b{reason}"
+  warned-player-expiration: "&e该警告{expiration}。"
+  warned-sender: "&b玩家 &e{player}&b 已被警告。原因：&e{reason}&b（ID：&e{id}&b）"
+  warned-sender-expiration: "&b该警告{expiration}。"
+  warned-sender-count: "&b玩家 &e{player}&b 现共有 &e{count}&b 条警告。"
+  limit-reached: "&c玩家 &e{player}&c 已达到警告上限，将受到处罚。"
+  offline-pending: "&e玩家 &b{player}&e 当前离线，处罚将在其重新登录时执行。"
+
+broadcast:
+  player-warned: "&d{player}&e 已被 &d{sender}&e 警告。原因：&d{reason}"
+
+warns:
+  console-specify-player: "&c请指定一个玩家名称。"
+  no-warnings: "&c未找到 {player} 的警告。"
+  header: "&b{player} 的警告 &7（第 {page}/{total_pages} 页，共 {count} 条）"
+  entry: "&7- &eID：{id} &7| &f原因：{reason} &7| &f来源：{source} &7| &f到期：{expiration} &7| &f{timestamp}"
+  footer: "&7第 {page}/{total_pages} 页 — 使用 /warns <玩家> <页码> 查看更多"
+  no-more-pages: "&c第 {page} 页不存在，最后一页为第 {total_pages} 页。"
+
+clearwarns:
+  cleared: "&a已清除 {player} 的 {count} 条警告。"
+  no-warnings: "&e未找到 {player} 的警告。"
+
+delwarn:
+  id-must-be-number: "&cID 必须是数字。"
+  deleted: "&a已删除 {player} 的警告 ID {id}。"
+  not-found: "&c警告 ID {id} 不存在。"
+
+editwarn:
+  usage: "&c用法：/editwarn <玩家> <ID> <reason|expiration> <值...>"
+  id-must-be-number: "&cID 必须是数字。"
+  player-not-found: "&c无效的玩家名称，该玩家从未游玩过。"
+  reason-empty: "&c原因不能为空。"
+  reason-updated: "&a已将警告 ID {id} 的原因更新为：{reason}"
+  expiration-updated: "&a已将警告 ID {id} 的到期时间更新为：{expiration}"
+  not-found: "&c警告 ID {id} 不存在。"
+  unknown-field: '&c未知字段，请使用 "reason" 或 "expiration"。'
+  invalid-duration: "&c无效的时长格式：{error}"
+
+listwarns:
+  no-players: "&e暂无玩家有警告。"
+  header: "&6有警告的玩家 &7（第 {page}/{total_pages} 页，共 {total_players} 名玩家 / {total_warnings} 条警告）"
+  entry: "&e{player} &7— &c{count} &7条警告 &8| 最近：{last_warning} &8| ID：{ids}"
+  footer: "&7第 {page}/{total_pages} 页 — 使用 /listwarns <页码> 查看更多"
+  no-more-pages: "&c第 {page} 页不存在，最后一页为第 {total_pages} 页。"
+
+join:
+  new-warnings: "&e你有 {count} 条新警告，请注意你的行为。"
+  active-warnings: "&c你有 {count} 条有效警告，请注意你的行为。"
+  no-warnings: "&a你没有有效警告，继续保持！"
+
+expiration:
+  never: "永不过期"
+  until: "将在 {duration} 后过期（{date}）"
+
+punishment:
+  warning-message: "&c你将在 {delay} 秒后受到处罚。"
+  kick: "&c因达到警告上限被踢出。"
+  ban: "&c因达到警告上限被封禁。"
+  ban-ip: "&c因达到警告上限，你的 IP 被封禁。"
+  tempban: "&c因达到警告上限被临时封禁。"
+
+expired:
+  player-notify: "&e你的警告已过期：{reason}"
+
+error:
+  failed-warning-count: "&c获取警告数量失败：{error}"
+  failed-add-warning: "&c添加警告失败：{error}"
+  failed-fetch-warnings: "&c获取警告失败：{error}"
+  failed-clear-warnings: "&c清除警告失败：{error}"
+  failed-delete-warning: "&c删除警告失败：{error}"
+  failed-update-warning: "&c更新警告失败：{error}"
+  failed-fetch-list: "&c获取列表失败：{error}"

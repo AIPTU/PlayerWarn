@@ -37,11 +37,4 @@ class WarningTracker {
 	public function remove(string $playerName) : void {
 		unset($this->lastWarningCounts[$playerName]);
 	}
-
-	/**
-	 * Check if a player is being tracked.
-	 */
-	public function hasTracking(string $playerName) : bool {
-		return isset($this->lastWarningCounts[$playerName]);
-	}
 }

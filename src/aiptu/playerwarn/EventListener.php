@@ -20,6 +20,7 @@ use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerQuitEvent;
 
 class EventListener implements Listener {
 	public function __construct(
@@ -79,6 +80,11 @@ class EventListener implements Listener {
 				);
 			}
 		);
+	}
+
+	public function onPlayerQuit(PlayerQuitEvent $event) : void {
+		$player = $event->getPlayer();
+		$this->plugin->getWarningTracker()->remove($player->getName());
 	}
 
 	public function onWarnAdd(WarnAddEvent $event) : void {

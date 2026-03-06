@@ -109,6 +109,10 @@ punishment:
   ban: "&cAnda telah diblokir karena mencapai batas peringatan."
   ban-ip: "&cAlamat IP Anda telah diblokir karena mencapai batas peringatan."
   tempban: "&cAnda telah diblokir sementara karena mencapai batas peringatan."
+  mute: "&cAnda telah dibisukan karena mencapai batas peringatan."
+  muted-chat: "&cAnda sedang dibisukan. Waktu tersisa: {remaining}"
+  muted-chat-permanent: "&cAnda dibisukan secara permanen."
+  unmuted: "&aAnda telah dibunyikan. Anda dapat mengobrol lagi."
 
 # Pesan peringatan kedaluwarsa
 # Placeholder: {reason}

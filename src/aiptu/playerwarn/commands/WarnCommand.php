@@ -29,6 +29,7 @@ use function array_shift;
 use function array_slice;
 use function count;
 use function implode;
+use function is_string;
 
 class WarnCommand extends Command implements PluginOwned {
 	use PluginOwnedTrait {
@@ -110,8 +111,11 @@ class WarnCommand extends Command implements PluginOwned {
 	 *
 	 * @throws InvalidArgumentException
 	 */
+	/**
+	 * @return array{string, string, DateTimeImmutable|null}
+	 */
 	private static function parseArguments(array $args, CommandSender $sender) : array {
-		$playerName = array_shift($args);
+		$playerName = (string) array_shift($args);
 		$expiration = null;
 
 		if (count($args) > 1) {
@@ -120,7 +124,7 @@ class WarnCommand extends Command implements PluginOwned {
 			$durationString = array_pop($args);
 
 			try {
-				$expiration = Utils::parseDurationString($durationString);
+				$expiration = is_string($durationString) ? Utils::parseDurationString($durationString) : null;
 			} catch (InvalidArgumentException $e) {
 				throw new InvalidArgumentException('Invalid duration format: ' . $e->getMessage());
 			}

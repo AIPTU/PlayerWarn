@@ -105,6 +105,14 @@ class MigrationService {
 			}
 		}
 
+		if (!is_string($reason)) {
+			$reason = 'Unknown';
+		}
+
+		if (!is_string($source)) {
+			$source = 'Console';
+		}
+
 		$this->provider->addWarn(
 			$playerName,
 			$reason,

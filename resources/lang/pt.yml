@@ -86,6 +86,10 @@ punishment:
   ban: "&cBanido por atingir o limite de advertências."
   ban-ip: "&cSeu IP foi banido por atingir o limite de advertências."
   tempban: "&cTemporariamente banido por atingir o limite de advertências."
+  mute: "&cVocê foi silenciado por atingir o limite de advertências."
+  muted-chat: "&cVocê está silenciado. Tempo restante: {remaining}"
+  muted-chat-permanent: "&cVocê está silenciado permanentemente."
+  unmuted: "&aVocê foi dessilenciado. Você pode conversar novamente."
 
 expired:
   player-notify: "&eSua advertência expirou: {reason}"

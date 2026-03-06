@@ -22,6 +22,7 @@ use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
 use aiptu\playerwarn\metrics\MetricWrapper;
 use aiptu\playerwarn\provider\WarnProvider;
+use aiptu\playerwarn\punishment\MuteManager;
 use aiptu\playerwarn\punishment\PendingPunishmentManager;
 use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
@@ -45,6 +46,7 @@ use function is_bool;
 use function is_int;
 use function is_string;
 use function json_decode;
+use function strtolower;
 use const FILTER_VALIDATE_URL;
 use const JSON_THROW_ON_ERROR;
 
@@ -55,6 +57,7 @@ class PlayerWarn extends PluginBase {
 	private PunishmentService $punishmentService;
 	private ?DiscordService $discordService = null;
 	private PendingPunishmentManager $pendingPunishmentManager;
+	private MuteManager $muteManager;
 	private WarningTracker $warningTracker;
 	private MessageManager $messageManager;
 
@@ -64,6 +67,7 @@ class PlayerWarn extends PluginBase {
 	private PunishmentType $punishmentType;
 	private bool $broadcastToEveryone = true;
 	private ?DateTimeImmutable $tempbanDuration = null;
+	private ?DateTimeImmutable $muteDuration = null;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -93,6 +97,7 @@ class PlayerWarn extends PluginBase {
 
 		$this->warnProvider = new WarnProvider($connector, $this->getLogger());
 		$this->pendingPunishmentManager = new PendingPunishmentManager();
+		$this->muteManager = new MuteManager($connector, $this->getLogger());
 		$this->warningTracker = new WarningTracker();
 		$this->checkMigration();
 
@@ -183,7 +188,7 @@ class PlayerWarn extends PluginBase {
 		$punishmentType = PunishmentType::fromString($punishmentTypeStr);
 		if ($punishmentType === null) {
 			throw new InvalidArgumentException(
-				'Invalid "punishment.type" value. Valid options: none, kick, ban, ban-ip, tempban'
+				'Invalid "punishment.type" value. Valid options: none, kick, ban, ban-ip, tempban, mute'
 			);
 		}
 
@@ -205,6 +210,29 @@ class PlayerWarn extends PluginBase {
 					'Invalid "punishment.tempban_duration" format: ' . $e->getMessage() .
 					'. Example: "1d", "12h", "1d12h30m"'
 				);
+			}
+		}
+
+		if ($punishmentType === PunishmentType::MUTE) {
+			$muteDurationStr = $config->getNested('punishment.mute_duration', '1h');
+			if (!is_string($muteDurationStr)) {
+				throw new InvalidArgumentException('Invalid "punishment.mute_duration" value. Expected string.');
+			}
+
+			if (strtolower($muteDurationStr) === 'never') {
+				$this->muteDuration = null;
+			} else {
+				try {
+					$this->muteDuration = Utils::parseDurationString($muteDurationStr);
+					if ($this->muteDuration === null) {
+						throw new InvalidArgumentException('Mute duration cannot be empty.');
+					}
+				} catch (InvalidArgumentException $e) {
+					throw new InvalidArgumentException(
+						'Invalid "punishment.mute_duration" format: ' . $e->getMessage() .
+						'. Example: "1h", "30m", "1d12h", or "never" for permanent'
+					);
+				}
 			}
 		}
 
@@ -232,7 +260,9 @@ class PlayerWarn extends PluginBase {
 			$this->getServer(),
 			$this->getLogger(),
 			$delaySeconds,
-			$this->messageManager
+			$this->messageManager,
+			$this->muteManager,
+			$this->muteDuration
 		);
 
 		$discordEnabled = $config->getNested('discord.enabled', false);
@@ -327,6 +357,14 @@ class PlayerWarn extends PluginBase {
 
 	public function getTempbanDuration() : ?DateTimeImmutable {
 		return $this->tempbanDuration;
+	}
+
+	public function getMuteManager() : MuteManager {
+		return $this->muteManager;
+	}
+
+	public function getMuteDuration() : ?DateTimeImmutable {
+		return $this->muteDuration;
 	}
 
 	public function isDiscordEnabled() : bool {

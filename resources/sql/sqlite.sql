@@ -10,6 +10,15 @@ CREATE TABLE IF NOT EXISTS player_warnings (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_player_name ON player_warnings(player_name);
+CREATE TABLE IF NOT EXISTS player_mutes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name VARCHAR(32) NOT NULL COLLATE NOCASE,
+    reason TEXT NOT NULL,
+    source VARCHAR(32) NOT NULL,
+    expiration DATETIME DEFAULT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mute_player ON player_mutes(player_name);
 -- #  }
 -- #}
 -- #{ warn
@@ -110,5 +119,54 @@ UPDATE player_warnings
 SET expiration = :expiration
 WHERE id = :id
     AND player_name = :player_name;
+-- #  }
+-- #}
+-- #{ mute
+-- #  { add
+-- #    :player_name string
+-- #    :reason string
+-- #    :source string
+-- #    :expiration ?string
+-- #    :timestamp string
+INSERT OR REPLACE INTO player_mutes (
+        player_name,
+        reason,
+        source,
+        expiration,
+        timestamp
+    )
+VALUES (
+        :player_name,
+        :reason,
+        :source,
+        :expiration,
+        :timestamp
+    );
+-- #  }
+-- #  { remove
+-- #    :player_name string
+DELETE FROM player_mutes
+WHERE player_name = :player_name;
+-- #  }
+-- #  { get
+-- #    :player_name string
+SELECT *
+FROM player_mutes
+WHERE player_name = :player_name
+    AND (
+        expiration IS NULL
+        OR expiration > CURRENT_TIMESTAMP
+    );
+-- #  }
+-- #  { get_expired
+SELECT *
+FROM player_mutes
+WHERE expiration IS NOT NULL
+    AND expiration <= CURRENT_TIMESTAMP;
+-- #  }
+-- #  { delete_expired
+DELETE FROM player_mutes
+WHERE expiration IS NOT NULL
+    AND expiration <= CURRENT_TIMESTAMP;
 -- #  }
 -- #}

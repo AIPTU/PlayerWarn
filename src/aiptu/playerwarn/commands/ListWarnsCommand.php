@@ -25,6 +25,8 @@ use function array_sum;
 use function ceil;
 use function count;
 use function implode;
+use function is_array;
+use function is_int;
 use function max;
 use function usort;
 
@@ -87,12 +89,20 @@ class ListWarnsCommand extends Command implements PluginOwned {
 				$entries = array_slice($players, ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE);
 
 				foreach ($entries as $entry) {
-					$lastWarning = (new \DateTimeImmutable('@' . $entry['last_warning_timestamp']))->format(Utils::DATE_TIME_FORMAT);
-					$ids = implode(', ', $entry['ids']);
+					if (!is_array($entry)) {
+						continue;
+					}
+
+					$lastWarningVal = $entry['last_warning_timestamp'] ?? 0;
+					$lastWarning = is_int($lastWarningVal)
+						? (new \DateTimeImmutable('@' . $lastWarningVal))->format(Utils::DATE_TIME_FORMAT)
+						: (new \DateTimeImmutable())->format(Utils::DATE_TIME_FORMAT);
+					$idsVal = $entry['ids'] ?? [];
+					$ids = is_array($idsVal) ? implode(', ', $idsVal) : (string) $idsVal;
 
 					$sender->sendMessage($msg->get('listwarns.entry', [
-						'player' => $entry['player'],
-						'count' => (string) $entry['count'],
+						'player' => (string) ($entry['player'] ?? ''),
+						'count' => (string) ($entry['count'] ?? 0),
 						'last_warning' => $lastWarning,
 						'ids' => $ids,
 					]));

@@ -21,6 +21,7 @@ enum PunishmentType : string {
 	case BAN = 'ban';
 	case BAN_IP = 'ban-ip';
 	case TEMPBAN = 'tempban';
+	case MUTE = 'mute';
 
 	public static function fromString(string $value) : ?self {
 		return match (strtolower($value)) {
@@ -29,6 +30,7 @@ enum PunishmentType : string {
 			'ban' => self::BAN,
 			'ban-ip' => self::BAN_IP,
 			'tempban' => self::TEMPBAN,
+			'mute' => self::MUTE,
 			default => null,
 		};
 	}

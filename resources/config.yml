@@ -36,17 +36,22 @@ warning:
 # Punishment settings
 punishment:
   # The `type` option specifies the type of punishment to apply when a player reaches the warning limit.
-  # Valid options are "kick", "ban", "ban-ip", "tempban", and "none".
+  # Valid options are "kick", "ban", "ban-ip", "tempban", "mute", and "none".
   # - "kick": Kicks the player from the server when the warning limit is reached.
   # - "ban": Bans the player from the server when the warning limit is reached.
   # - "ban-ip": Bans the player's IP address from the server when the warning limit is reached.
   # - "tempban": Temporarily bans the player from the server when the warning limit is reached.
+  # - "mute": Mutes the player, preventing them from chatting when the warning limit is reached.
   # - "none": No punishment will be applied when the warning limit is reached.
   # Default value is "none".
   type: none
 
   # Duration for "tempban" punishment type (e.g., "1d", "12h", "1d12h30m").
   tempban_duration: "1d"
+
+  # Duration for "mute" punishment type (e.g., "1h", "30m", "1d12h").
+  # Set to "never" for a permanent mute.
+  mute_duration: "1h"
 
 # Database settings
 database:

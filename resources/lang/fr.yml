@@ -86,6 +86,10 @@ punishment:
   ban: "&cBanni pour avoir atteint la limite d'avertissements."
   ban-ip: "&cIP bannie pour avoir atteint la limite d'avertissements."
   tempban: "&cBanni temporairement pour avoir atteint la limite d'avertissements."
+  mute: "&cVous avez été réduit(e) au silence pour avoir atteint la limite d'avertissements."
+  muted-chat: "&cVous êtes réduit(e) au silence. Temps restant : {remaining}"
+  muted-chat-permanent: "&cVous êtes définitivement réduit(e) au silence."
+  unmuted: "&aVous n'êtes plus réduit(e) au silence. Vous pouvez à nouveau discuter."
 
 expired:
   player-notify: "&eVotre avertissement a expiré : {reason}"

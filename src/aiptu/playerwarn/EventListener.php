@@ -18,7 +18,10 @@ use aiptu\playerwarn\event\WarnAddEvent;
 use aiptu\playerwarn\event\WarnEditEvent;
 use aiptu\playerwarn\event\WarnExpiredEvent;
 use aiptu\playerwarn\event\WarnRemoveEvent;
+use aiptu\playerwarn\utils\Utils;
+use DateTimeImmutable;
 use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 
@@ -49,6 +52,8 @@ class EventListener implements Listener {
 
 			$pendingManager->clear($playerName);
 		}
+
+		$this->plugin->getMuteManager()->loadPlayerMute($playerName);
 
 		$this->plugin->getProvider()->getWarningCount(
 			$playerName,
@@ -84,7 +89,34 @@ class EventListener implements Listener {
 
 	public function onPlayerQuit(PlayerQuitEvent $event) : void {
 		$player = $event->getPlayer();
-		$this->plugin->getWarningTracker()->remove($player->getName());
+		$playerName = $player->getName();
+		$this->plugin->getWarningTracker()->remove($playerName);
+		$this->plugin->getMuteManager()->unloadPlayerMute($playerName);
+	}
+
+	public function onPlayerChat(PlayerChatEvent $event) : void {
+		$player = $event->getPlayer();
+		$playerName = $player->getName();
+		$muteManager = $this->plugin->getMuteManager();
+		$msg = $this->plugin->getMessageManager();
+
+		$muteManager->getActiveMute($playerName, function (?array $muteData) use ($event, $player, $msg) : void {
+			if ($muteData === null) {
+				return;
+			}
+
+			$event->cancel();
+
+			$expiration = $muteData['expiration'];
+			if ($expiration === null) {
+				$player->sendMessage($msg->get('punishment.muted-chat-permanent'));
+			} else {
+				$remaining = $expiration->getTimestamp() - (new DateTimeImmutable())->getTimestamp();
+				$player->sendMessage($msg->get('punishment.muted-chat', [
+					'remaining' => Utils::formatDuration($remaining > 0 ? $remaining : 0),
+				]));
+			}
+		});
 	}
 
 	public function onWarnAdd(WarnAddEvent $event) : void {

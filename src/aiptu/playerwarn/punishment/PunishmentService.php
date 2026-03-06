@@ -27,7 +27,9 @@ class PunishmentService {
 		private Server $server,
 		private \AttachableLogger $logger,
 		private int $delaySeconds,
-		private MessageManager $messageManager
+		private MessageManager $messageManager,
+		private MuteManager $muteManager,
+		private ?DateTimeImmutable $muteDuration
 	) {}
 
 	public function scheduleDelayedPunishment(
@@ -81,6 +83,7 @@ class PunishmentService {
 				PunishmentType::BAN => $this->ban($player, $reason, $issuerName, $message, $until),
 				PunishmentType::BAN_IP => $this->banIp($player, $reason, $issuerName, $message, $until),
 				PunishmentType::TEMPBAN => $this->ban($player, $reason, $issuerName, $message, $until ?? (new DateTimeImmutable())->modify('+1 day')),
+				PunishmentType::MUTE => $this->mute($player, $reason, $issuerName, $message),
 				PunishmentType::NONE => null,
 			};
 		} catch (\Throwable $e) {
@@ -137,6 +140,33 @@ class PunishmentService {
 		$player->kick($message);
 		$this->server->getNetwork()->blockAddress($ip, -1);
 		$this->logger->info("IP banned player: {$playerName} (IP: {$ip})" . ($expiry !== null ? " until {$expiry->format('Y-m-d H:i:s')}" : ' permanently'));
+	}
+
+	private function mute(
+		Player $player,
+		string $reason,
+		string $issuerName,
+		string $message
+	) : void {
+		$playerName = $player->getName();
+
+		$this->muteManager->mute(
+			$playerName,
+			$reason,
+			$issuerName,
+			$this->muteDuration,
+			function () use ($player, $playerName, $message) : void {
+				$player->sendMessage($message);
+				$this->logger->info("Muted player: {$playerName}" . ($this->muteDuration !== null ? " until {$this->muteDuration->format('Y-m-d H:i:s')}" : ' permanently'));
+			},
+			function (\Throwable $error) use ($playerName) : void {
+				$this->logger->error("Failed to mute player {$playerName}: " . $error->getMessage());
+			}
+		);
+	}
+
+	public function getMuteManager() : MuteManager {
+		return $this->muteManager;
 	}
 
 	public function getDelaySeconds() : int {

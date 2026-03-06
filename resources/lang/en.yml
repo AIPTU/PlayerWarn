@@ -109,6 +109,10 @@ punishment:
   ban: "&cYou have been banned for reaching the warning limit."
   ban-ip: "&cYour IP address has been banned for reaching the warning limit."
   tempban: "&cYou have been temporarily banned for reaching the warning limit."
+  mute: "&cYou have been muted for reaching the warning limit."
+  muted-chat: "&cYou are muted. Time remaining: {remaining}"
+  muted-chat-permanent: "&cYou are permanently muted."
+  unmuted: "&aYou have been unmuted. You can chat again."
 
 # Expired warning messages
 # Placeholders: {reason}

@@ -86,6 +86,10 @@ punishment:
   ban: "&cGebannt – Verwarnungslimit erreicht."
   ban-ip: "&cIP gebannt – Verwarnungslimit erreicht."
   tempban: "&cTemporär gebannt – Verwarnungslimit erreicht."
+  mute: "&cDu wurdest stummgeschaltet, weil du das Verwarnungslimit erreicht hast."
+  muted-chat: "&cDu bist stummgeschaltet. Verbleibende Zeit: {remaining}"
+  muted-chat-permanent: "&cDu bist dauerhaft stummgeschaltet."
+  unmuted: "&aDu wurdest entstummt. Du kannst wieder chatten."
 
 expired:
   player-notify: "&eDeine Verwarnung ist abgelaufen: {reason}"

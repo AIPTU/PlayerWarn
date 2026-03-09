@@ -24,6 +24,12 @@ class ExpiredWarningsTask extends Task {
 	) {}
 
 	public function onRun() : void {
+		$this->plugin->getWarnCooldownManager()?->cleanup();
+
+		$this->processExpiredWarnings();
+	}
+
+	private function processExpiredWarnings() : void {
 		$this->plugin->getProvider()->getExpiredWarns(
 			function (array $warns) : void {
 				if (count($warns) === 0) {

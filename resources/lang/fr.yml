@@ -19,12 +19,17 @@ command:
   listwarns:
     description: "Voir tous les joueurs avec des avertissements"
     usage: "/listwarns [page]"
+  unwarn:
+    description: "Annuler le dernier avertissement d'un joueur"
+    usage: "/unwarn <joueur>"
 
 warn:
   player-not-found: "&cNom de joueur invalide. Ce joueur n'a jamais joué."
   cannot-warn: "&cVous ne pouvez pas avertir ce joueur."
   cannot-warn-bypass: "&cVous ne pouvez pas avertir ce joueur (permission de contournement)."
   invalid-duration: "&cFormat de durée invalide : {error}"
+  cooldown: "&cAttendez encore &e{seconds}&c seconde(s) avant d'avertir &e{player}&c à nouveau."
+  near-limit-staff: "&6[Staff] &eAlerte : &b{player}&e a maintenant &c{count}/{limit}&e avertissements actifs."
   warned-player: "&eVous avez été averti par &b{sender}&e. Raison : &b{reason}"
   warned-player-expiration: "&eL'avertissement {expiration}."
   warned-sender: "&bLe joueur &e{player}&b a été averti. Raison : &e{reason}&b (ID : &e{id}&b)"
@@ -43,6 +48,11 @@ warns:
   entry: "&7- &eID : {id} &7| &fRaison : {reason} &7| &fSource : {source} &7| &fExpiration : {expiration} &7| &f{timestamp}"
   footer: "&7Page {page}/{total_pages} — plus de pages avec /warns <joueur> <page>"
   no-more-pages: "&cLa page {page} n'existe pas. Dernière page : {total_pages}."
+
+unwarn:
+  no-warnings: "&eAucun avertissement trouvé pour &b{player}&e."
+  success: "&aDernier avertissement &e(ID {id})&a supprimé pour &e{player}&a. Raison : &f{reason}"
+  failed: "&cImpossible de supprimer l'avertissement pour {player}. Il a peut-être déjà été supprimé."
 
 clearwarns:
   cleared: "&a{count} avertissement(s) effacé(s) pour {player}."

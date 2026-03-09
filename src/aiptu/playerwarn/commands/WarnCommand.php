@@ -60,16 +60,26 @@ class WarnCommand extends Command implements PluginOwned {
 
 		$playerName = $args[0];
 		$server = $this->plugin->getServer();
+		$msg = $this->plugin->getMessageManager();
 
 		if (!$server->hasOfflinePlayerData($playerName)) {
-			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.player-not-found'));
+			$sender->sendMessage($msg->get('warn.player-not-found'));
+			return false;
+		}
+
+		$cooldown = $this->plugin->getWarnCooldownManager();
+		if ($cooldown !== null && $cooldown->isOnCooldown($sender->getName(), $playerName)) {
+			$sender->sendMessage($msg->get('warn.cooldown', [
+				'player' => $playerName,
+				'seconds' => (string) $cooldown->getRemaining($sender->getName(), $playerName),
+			]));
 			return false;
 		}
 
 		try {
 			[$playerName, $reason, $expiration] = self::parseArguments($args, $sender);
 		} catch (InvalidArgumentException $e) {
-			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.invalid-duration', [
+			$sender->sendMessage($msg->get('warn.invalid-duration', [
 				'error' => $e->getMessage(),
 			]));
 			return false;
@@ -77,7 +87,7 @@ class WarnCommand extends Command implements PluginOwned {
 
 		$target = $server->getPlayerExact($playerName);
 		if ($target instanceof Player && $target->hasPermission('playerwarn.bypass')) {
-			$sender->sendMessage($this->plugin->getMessageManager()->get('warn.cannot-warn'));
+			$sender->sendMessage($msg->get('warn.cannot-warn'));
 			return true;
 		}
 
@@ -86,10 +96,14 @@ class WarnCommand extends Command implements PluginOwned {
 			if ($offlinePlayer !== null) {
 				$offlinePlayerName = $offlinePlayer->getName();
 				if ($this->hasOfflineBypassPermission($offlinePlayerName)) {
-					$sender->sendMessage($this->plugin->getMessageManager()->get('warn.cannot-warn-bypass'));
+					$sender->sendMessage($msg->get('warn.cannot-warn-bypass'));
 					return true;
 				}
 			}
+		}
+
+		if ($cooldown !== null) {
+			$cooldown->record($sender->getName(), $playerName);
 		}
 
 		$this->addWarning($playerName, $reason, $sender, $expiration);
@@ -106,11 +120,6 @@ class WarnCommand extends Command implements PluginOwned {
 		// For now, we rely on op status for offline players
 	}
 
-	/**
-	 * @return array{string, string, ?DateTimeImmutable}
-	 *
-	 * @throws InvalidArgumentException
-	 */
 	/**
 	 * @return array{string, string, DateTimeImmutable|null}
 	 */
@@ -156,6 +165,7 @@ class WarnCommand extends Command implements PluginOwned {
 					$entry->getPlayerName(),
 					function (int $count) use ($entry, $sender, $expiration) : void {
 						$this->sendMessageToSender($entry, $sender, $expiration, $count);
+						$this->notifyStaffIfNearLimit($entry, $count);
 						$this->applyPotentialPunishment($entry, $sender, $count);
 					},
 					function (\Throwable $error) use ($sender) : void {
@@ -195,13 +205,17 @@ class WarnCommand extends Command implements PluginOwned {
 		]));
 
 		if ($this->plugin->isBroadcastToEveryoneEnabled()) {
-			$this->plugin->getServer()->broadcastMessage(
-				$msg->get('broadcast.player-warned', [
-					'player' => $entry->getPlayerName(),
-					'reason' => $entry->getReason(),
-					'sender' => $sender->getName(),
-				])
-			);
+			$broadcastMessage = $msg->get('broadcast.player-warned', [
+				'player' => $entry->getPlayerName(),
+				'reason' => $entry->getReason(),
+				'sender' => $sender->getName(),
+			]);
+
+			foreach ($this->plugin->getServer()->getOnlinePlayers() as $onlinePlayer) {
+				if (!$onlinePlayer->hasPermission('playerwarn.broadcast.bypass')) {
+					$onlinePlayer->sendMessage($broadcastMessage);
+				}
+			}
 		}
 	}
 
@@ -228,6 +242,30 @@ class WarnCommand extends Command implements PluginOwned {
 				'player' => $entry->getPlayerName(),
 				'count' => (string) $warningCount,
 			]));
+		}
+	}
+
+	/**
+	 * Alert online staff when a player is exactly one warning away from the limit.
+	 */
+	private function notifyStaffIfNearLimit(WarnEntry $entry, int $warningCount) : void {
+		$limit = $this->plugin->getWarningLimit();
+
+		if ($warningCount !== $limit - 1) {
+			return;
+		}
+
+		$msg = $this->plugin->getMessageManager();
+		$notification = $msg->get('warn.near-limit-staff', [
+			'player' => $entry->getPlayerName(),
+			'count' => (string) $warningCount,
+			'limit' => (string) $limit,
+		]);
+
+		foreach ($this->plugin->getServer()->getOnlinePlayers() as $onlinePlayer) {
+			if ($onlinePlayer->hasPermission('playerwarn.staff.notify')) {
+				$onlinePlayer->sendMessage($notification);
+			}
 		}
 	}
 

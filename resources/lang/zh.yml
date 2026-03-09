@@ -19,12 +19,17 @@ command:
   listwarns:
     description: "查看所有有警告的玩家"
     usage: "/listwarns [页码]"
+  unwarn:
+    description: "撤销玩家最近一次警告"
+    usage: "/unwarn <玩家>"
 
 warn:
   player-not-found: "&c无效的玩家名称，该玩家从未游玩过。"
   cannot-warn: "&c你无法警告该玩家。"
   cannot-warn-bypass: "&c你无法警告该玩家（其拥有绕过权限）。"
   invalid-duration: "&c无效的时长格式：{error}"
+  cooldown: "&c再等待 &e{seconds}&c 秒后才能再次警告 &e{player}&c。"
+  near-limit-staff: "&6[管理] &e提醒：&b{player}&e 当前已有 &c{count}/{limit}&e 条有效警告。"
   warned-player: "&e你已被 &b{sender}&e 警告。原因：&b{reason}"
   warned-player-expiration: "&e该警告{expiration}。"
   warned-sender: "&b玩家 &e{player}&b 已被警告。原因：&e{reason}&b（ID：&e{id}&b）"
@@ -43,6 +48,11 @@ warns:
   entry: "&7- &eID：{id} &7| &f原因：{reason} &7| &f来源：{source} &7| &f到期：{expiration} &7| &f{timestamp}"
   footer: "&7第 {page}/{total_pages} 页 — 使用 /warns <玩家> <页码> 查看更多"
   no-more-pages: "&c第 {page} 页不存在，最后一页为第 {total_pages} 页。"
+
+unwarn:
+  no-warnings: "&e未找到 &b{player}&e 的警告。"
+  success: "&a已撤销 &e{player}&a 的最近一次警告 &e（ID {id}）&a。原因：&f{reason}"
+  failed: "&c无法撤销 {player} 的警告，该警告可能已被删除。"
 
 clearwarns:
   cleared: "&a已清除 {player} 的 {count} 条警告。"

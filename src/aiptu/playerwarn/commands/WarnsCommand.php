@@ -23,6 +23,7 @@ use pocketmine\plugin\PluginOwnedTrait;
 use function array_slice;
 use function ceil;
 use function count;
+use function is_numeric;
 use function max;
 
 class WarnsCommand extends Command implements PluginOwned {
@@ -55,8 +56,13 @@ class WarnsCommand extends Command implements PluginOwned {
 			return false;
 		}
 
-		$playerName = $args[0] ?? $sender->getName();
-		$requestedPage = isset($args[1]) ? max(1, (int) $args[1]) : 1;
+		if ($sender instanceof Player && isset($args[0]) && is_numeric($args[0])) {
+			$playerName = $sender->getName();
+			$requestedPage = max(1, (int) $args[0]);
+		} else {
+			$playerName = $args[0] ?? $sender->getName();
+			$requestedPage = isset($args[1]) && is_numeric($args[1]) ? max(1, (int) $args[1]) : 1;
+		}
 
 		$this->plugin->getProvider()->getWarns(
 			$playerName,
@@ -106,10 +112,12 @@ class WarnsCommand extends Command implements PluginOwned {
 					]));
 				}
 
-				$sender->sendMessage($msg->get('warns.footer', [
-					'page' => (string) $page,
-					'total_pages' => (string) $totalPages,
-				]));
+				if ($totalPages > 1) {
+					$sender->sendMessage($msg->get('warns.footer', [
+						'page' => (string) $page,
+						'total_pages' => (string) $totalPages,
+					]));
+				}
 			},
 			function (\Throwable $e) use ($sender, $msg) : void {
 				$sender->sendMessage($msg->get('error.failed-fetch-warnings', ['error' => $e->getMessage()]));

@@ -22,6 +22,18 @@ permissions:
   playerwarn.command.listwarns:
     description: Permission to use the /listwarns command
     default: op
+  playerwarn.command.unwarn:
+    description: Permission to use the /unwarn command (undo most recent warning)
+    default: op
   playerwarn.bypass:
     description: Permission to bypass being warned
+    default: op
+  playerwarn.broadcast.bypass:
+    description: Suppress receiving warning broadcast messages
+    default: false
+  playerwarn.join.suppress:
+    description: Suppress the warning summary message on join
+    default: false
+  playerwarn.staff.notify:
+    description: Receive a staff alert when a player is one warning away from the limit
     default: op

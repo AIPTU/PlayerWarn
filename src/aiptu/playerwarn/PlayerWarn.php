@@ -17,6 +17,7 @@ use aiptu\playerwarn\commands\ClearWarnsCommand;
 use aiptu\playerwarn\commands\DeleteWarnCommand;
 use aiptu\playerwarn\commands\EditWarnCommand;
 use aiptu\playerwarn\commands\ListWarnsCommand;
+use aiptu\playerwarn\commands\UnwarnCommand;
 use aiptu\playerwarn\commands\WarnCommand;
 use aiptu\playerwarn\commands\WarnsCommand;
 use aiptu\playerwarn\discord\DiscordService;
@@ -28,6 +29,7 @@ use aiptu\playerwarn\punishment\PunishmentService;
 use aiptu\playerwarn\punishment\PunishmentType;
 use aiptu\playerwarn\task\ExpiredWarningsTask;
 use aiptu\playerwarn\utils\Utils;
+use aiptu\playerwarn\warns\WarnCooldownManager;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use JackMD\UpdateNotifier\UpdateNotifier;
@@ -60,6 +62,7 @@ class PlayerWarn extends PluginBase {
 	private MuteManager $muteManager;
 	private WarningTracker $warningTracker;
 	private MessageManager $messageManager;
+	private ?WarnCooldownManager $warnCooldownManager = null;
 
 	private bool $updateNotifierEnabled;
 	private int $expirationCheckInterval;
@@ -68,6 +71,7 @@ class PlayerWarn extends PluginBase {
 	private bool $broadcastToEveryone = true;
 	private ?DateTimeImmutable $tempbanDuration = null;
 	private ?DateTimeImmutable $muteDuration = null;
+	private bool $joinWarningsEnabled = true;
 
 	public function onEnable() : void {
 		foreach (array_keys($this->getResources()) as $resource) {
@@ -109,6 +113,7 @@ class PlayerWarn extends PluginBase {
 			new DeleteWarnCommand($this),
 			new EditWarnCommand($this),
 			new ListWarnsCommand($this),
+			new UnwarnCommand($this),
 		]);
 
 		$this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
@@ -248,6 +253,14 @@ class PlayerWarn extends PluginBase {
 			$delaySeconds = 5;
 		}
 
+		$cooldownSeconds = $config->getNested('warning.cooldown', 0);
+		if (is_int($cooldownSeconds) && $cooldownSeconds > 0) {
+			$this->warnCooldownManager = new WarnCooldownManager($cooldownSeconds);
+		}
+
+		$joinWarnings = $config->getNested('warning.join_warnings', true);
+		$this->joinWarningsEnabled = is_bool($joinWarnings) ? $joinWarnings : true;
+
 		$language = $config->get('language', 'en');
 		if (!is_string($language)) {
 			$language = 'en';
@@ -377,5 +390,13 @@ class PlayerWarn extends PluginBase {
 
 	public function getMessageManager() : MessageManager {
 		return $this->messageManager;
+	}
+
+	public function getWarnCooldownManager() : ?WarnCooldownManager {
+		return $this->warnCooldownManager;
+	}
+
+	public function isJoinWarningsEnabled() : bool {
+		return $this->joinWarningsEnabled;
 	}
 }

@@ -30,8 +30,19 @@ warning:
   # The `broadcast_to_everyone` option enables or disables broadcasting warning events to all players on the server.
   # Set to true to enable broadcasting, or false to disable it.
   # When enabled, all players will be notified when a warning is issued.
+  # Players with the "playerwarn.broadcast.bypass" permission will not receive the broadcast.
   # Default value: true
   broadcast_to_everyone: true
+
+  # The `cooldown` option specifies the minimum number of seconds a moderator must wait before
+  # warning the same player again. Set to 0 to disable cooldown entirely.
+  # Default value: 0
+  cooldown: 0
+
+  # The `join_warnings` option controls whether players see their warning summary on join.
+  # Players with the "playerwarn.join.suppress" permission will never see join messages regardless.
+  # Default value: true
+  join_warnings: true
 
 # Punishment settings
 punishment:

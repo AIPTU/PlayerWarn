@@ -22,14 +22,19 @@ command:
   listwarns:
     description: "View all players with warnings"
     usage: "/listwarns [page]"
+  unwarn:
+    description: "Undo the most recent warning for a player"
+    usage: "/unwarn <player>"
 
 # Warn command messages
-# Placeholders: {player}, {reason}, {sender}, {id}, {count}, {expiration}
+# Placeholders: {player}, {reason}, {sender}, {id}, {count}, {expiration}, {seconds}, {limit}
 warn:
   player-not-found: "&cInvalid player username. The player has not played before."
   cannot-warn: "&cYou cannot warn this player."
   cannot-warn-bypass: "&cYou cannot warn this player (has bypass permission)."
   invalid-duration: "&cInvalid duration format: {error}"
+  cooldown: "&cWait &e{seconds}&c more second(s) before warning &e{player}&c again."
+  near-limit-staff: "&6[Staff] &eAlert: &b{player}&e now has &c{count}/{limit}&e active warnings."
   warned-player: "&eYou have been warned by &b{sender}&e for: &b{reason}"
   warned-player-expiration: "&eThe warning will {expiration}"
   warned-sender: "&bPlayer &e{player}&b has been warned for: &e{reason}&b (Warning ID: &e{id}&b)"
@@ -44,14 +49,21 @@ broadcast:
   player-warned: "&d{player}&e has been warned for: &d{reason}&e by &d{sender}"
 
 # Warns command messages
-# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {line}, {page}, {total_pages}
+# Placeholders: {player}, {count}, {id}, {timestamp}, {reason}, {source}, {expiration}, {page}, {total_pages}
 warns:
   console-specify-player: "&cPlease specify a player name when using this command from the console."
   no-warnings: "&cNo warnings found for {player}."
   header: "&bWarnings for {player} &7(Page {page}/{total_pages}, total {count})"
-  entry: "&7{line}- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
-  footer: "&7Page {page}/{total_pages} — more pages with /warns <player> <page>"
+  entry: "&7- &eID: {id} &e| Timestamp: &f{timestamp} &e| Reason: &f{reason} &e| Source: &f{source} &e| Expiration: &f{expiration}"
+  footer: "&7Page {page}/{total_pages} — use &b/warns <player> <page>&7 to navigate."
   no-more-pages: "&cPage {page} does not exist. Last page: {total_pages}"
+
+# Unwarn command messages
+# Placeholders: {player}, {id}, {reason}
+unwarn:
+  no-warnings: "&eNo warnings found for &b{player}&e."
+  success: "&aRemoved most recent warning &e(ID {id})&a for &e{player}&a. Reason was: &f{reason}"
+  failed: "&cFailed to remove warning for {player}. It may have already been deleted."
 
 # Clear warns command messages
 # Placeholders: {player}, {count}
@@ -85,7 +97,7 @@ listwarns:
   no-players: "&eNo players have any warnings."
   header: "&6Players with Warnings &7(Page {page}/{total_pages}, {total_players} players / {total_warnings} warnings)"
   entry: "&e{player}&7 - &c{count}&7 warning(s)&8 (Last: {last_warning})&eIDs: {ids}"
-  footer: "&7Page {page}/{total_pages} — more pages with /listwarns <page>"
+  footer: "&7Page {page}/{total_pages} — use &b/listwarns <page>&7 to navigate."
   no-more-pages: "&cPage {page} does not exist. Last page: {total_pages}"
 
 # Player join messages
@@ -102,7 +114,7 @@ expiration:
   until: "until {duration} ({date})"
 
 # Punishment messages
-# Placeholders: {player}, {delay}
+# Placeholders: {player}, {delay}, {remaining}
 punishment:
   warning-message: "&cYou have reached the warning limit. You will be punished in {delay} seconds."
   kick: "&cYou have been kicked for reaching the warning limit."
@@ -111,7 +123,7 @@ punishment:
   tempban: "&cYou have been temporarily banned for reaching the warning limit."
   mute: "&cYou have been muted for reaching the warning limit."
   muted-chat: "&cYou are muted. Time remaining: {remaining}"
-  muted-chat-permanent: "&cYou are permanently muted."
+  muted-chat-permanent: "&cYou are permanently muted and cannot chat."
   unmuted: "&aYou have been unmuted. You can chat again."
 
 # Expired warning messages

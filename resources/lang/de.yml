@@ -19,12 +19,17 @@ command:
   listwarns:
     description: "Alle Spieler mit Verwarnungen anzeigen"
     usage: "/listwarns [Seite]"
+  unwarn:
+    description: "Die letzte Verwarnung eines Spielers rückgängig machen"
+    usage: "/unwarn <Spieler>"
 
 warn:
   player-not-found: "&cUngültiger Spielername. Der Spieler hat noch nie gespielt."
   cannot-warn: "&cDu kannst diesen Spieler nicht verwarnen."
   cannot-warn-bypass: "&cDu kannst diesen Spieler nicht verwarnen (hat Bypass-Berechtigung)."
   invalid-duration: "&cUngültiges Dauerformat: {error}"
+  cooldown: "&cWarte noch &e{seconds}&c Sekunde(n), bevor du &e{player}&c erneut verwarnst."
+  near-limit-staff: "&6[Staff] &eHinweis: &b{player}&e hat jetzt &c{count}/{limit}&e aktive Verwarnungen."
   warned-player: "&eDu wurdest von &b{sender}&e verwarnt. Grund: &b{reason}"
   warned-player-expiration: "&eDie Verwarnung {expiration}."
   warned-sender: "&bSpieler &e{player}&b wurde verwarnt. Grund: &e{reason}&b (ID: &e{id}&b)"
@@ -43,6 +48,11 @@ warns:
   entry: "&7- &eID: {id} &7| &fGrund: {reason} &7| &fQuelle: {source} &7| &fAblauf: {expiration} &7| &f{timestamp}"
   footer: "&7Seite {page}/{total_pages} — weitere Seite mit /warns <Spieler> <Seite>"
   no-more-pages: "&cSeite {page} existiert nicht. Letzte Seite: {total_pages}."
+
+unwarn:
+  no-warnings: "&eKeine Verwarnungen für &b{player}&e gefunden."
+  success: "&aLetzte Verwarnung &e(ID {id})&a für &e{player}&a entfernt. Grund: &f{reason}"
+  failed: "&cVerwarnung für {player} konnte nicht entfernt werden. Sie wurde möglicherweise bereits gelöscht."
 
 clearwarns:
   cleared: "&a{count} Verwarnung(en) für {player} gelöscht."

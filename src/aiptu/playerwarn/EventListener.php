@@ -55,6 +55,10 @@ class EventListener implements Listener {
 
 		$this->plugin->getMuteManager()->loadPlayerMute($playerName);
 
+		if (!$this->plugin->isJoinWarningsEnabled() || $player->hasPermission('playerwarn.join.suppress')) {
+			return;
+		}
+
 		$this->plugin->getProvider()->getWarningCount(
 			$playerName,
 			function (int $currentWarningCount) use ($player, $playerName) : void {
@@ -94,6 +98,11 @@ class EventListener implements Listener {
 		$this->plugin->getMuteManager()->unloadPlayerMute($playerName);
 	}
 
+	/**
+	 * @priority HIGH
+	 *
+	 * @handleCancelled false
+	 */
 	public function onPlayerChat(PlayerChatEvent $event) : void {
 		$player = $event->getPlayer();
 		$playerName = $player->getName();

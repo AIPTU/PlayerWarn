@@ -19,12 +19,17 @@ command:
   listwarns:
     description: "Ver todos los jugadores con advertencias"
     usage: "/listwarns [página]"
+  unwarn:
+    description: "Deshacer la advertencia más reciente de un jugador"
+    usage: "/unwarn <jugador>"
 
 warn:
   player-not-found: "&cNombre de jugador inválido. El jugador nunca ha jugado."
   cannot-warn: "&cNo puedes advertir a este jugador."
   cannot-warn-bypass: "&cNo puedes advertir a este jugador (tiene permiso de omisión)."
   invalid-duration: "&cFormato de duración inválido: {error}"
+  cooldown: "&cEspera &e{seconds}&c segundo(s) más antes de advertir a &e{player}&c de nuevo."
+  near-limit-staff: "&6[Staff] &eAlerta: &b{player}&e ahora tiene &c{count}/{limit}&e advertencias activas."
   warned-player: "&eHas sido advertido por &b{sender}&e. Razón: &b{reason}"
   warned-player-expiration: "&eLa advertencia {expiration}."
   warned-sender: "&bEl jugador &e{player}&b fue advertido. Razón: &e{reason}&b (ID: &e{id}&b)"
@@ -43,6 +48,11 @@ warns:
   entry: "&7- &eID: {id} &7| &fRazón: {reason} &7| &fFuente: {source} &7| &fExpiración: {expiration} &7| &f{timestamp}"
   footer: "&7Página {page}/{total_pages} — más páginas con /warns <jugador> <página>"
   no-more-pages: "&cLa página {page} no existe. Última página: {total_pages}."
+
+unwarn:
+  no-warnings: "&eNo se encontraron advertencias para &b{player}&e."
+  success: "&aAdvertencia más reciente &e(ID {id})&a eliminada para &e{player}&a. Razón: &f{reason}"
+  failed: "&cNo se pudo eliminar la advertencia para {player}. Puede que ya haya sido eliminada."
 
 clearwarns:
   cleared: "&aSe eliminaron {count} advertencia(s) para {player}."
